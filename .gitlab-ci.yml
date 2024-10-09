@@ -1,0 +1,78 @@
+stages:
+  - test
+  - build
+
+variables:
+  IMAGE_NAME: javascriptonit/devsecops-bootcamp
+  IMAGE_TAG: 0.0.1
+
+yarn_test:
+  image: node:18-bullseye
+  stage: test
+  script:
+    - yarn install
+    - yarn test
+
+build_image:
+  image: docker/compose:latest
+  stage: build
+  before_script:
+    - echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+  script:
+    - docker build -t $IMAGE_NAME:$IMAGE_TAG .
+    - docker push $IMAGE_NAME:$IMAGE_TAG
+
+
+
+
+
+# # SAST
+# sast:
+#   stage: scan
+#   image: getcarrier/sast:latest
+#   script:
+#     - echo "Starting SAST scan..."
+#     - /sast/tools/sast-analyzer --source /path/to/your/code
+#   artifacts:
+#     paths:
+#       - sast-report.json
+
+# # DAST
+# dast:
+#   stage: scan
+#   image: getcarrier/dast:latest
+#   script:
+#     - echo "Starting DAST scan..."
+#     - /dast/tools/dast-scanner --target http://your-app-url.com --output dast-report.json
+#   artifacts:
+#     paths:
+#       - dast-report.json
+
+# # Альтернативный DAST инструмент 
+# fortify_dast:
+#   stage: scan
+#   image: fortifydocker/scancentral-dast-api:latest
+#   script:
+#     - echo "Running Fortify DAST scan..."
+#     - /fortify/scan --url http://your-app-url.com --out fortify-dast-report.json
+#   artifacts:
+#     paths:
+#       - fortify-dast-report.json
+
+# # SCA
+# sca:
+#   stage: scan
+#   image: admpresales/sca:latest
+#   script:
+#     - echo "Starting SCA scan..."
+#     - /sca/tools/scan --path /path/to/your/project --output sca-report.json
+#   artifacts:
+#     paths:
+#       - sca-report.json
+
+# # Деплой (пример, как может выглядеть)
+# deploy:
+#   stage: deploy
+#   script:
+#     - echo "Deploying application..."
+#     - ./deploy-script.sh
