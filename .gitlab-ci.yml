@@ -1,4 +1,5 @@
 stages:
+  - cache
   - test
   - build
 
@@ -6,16 +7,42 @@ variables:
   IMAGE_NAME: javascriptonit/devsecops-bootcamp
   IMAGE_TAG: 0.0.1
 
+create_cache:
+  stage: cache
+  image: node:18-bullseye
+  script:
+    - yarn install
+  cache:
+    key:
+      files:
+        - yarn.lock
+    paths:
+      - node_modules/
+      - yarn.lock
+      - .yarn
+    policy: pull-push
+
 yarn_test:
   image: node:18-bullseye
   stage: test
+  cache:
+    key:
+      files:
+        - yarn.lock
+    paths:
+      - node_modules/
+      - yarn.lock
+      - .yarn
+    policy: pull
   script:
     - yarn install
     - yarn test
 
 build_image:
-  image: docker/compose:latest
+  image: docker:24
   stage: build
+  services:
+    - docker:24-dind
   before_script:
     - echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
   script:
