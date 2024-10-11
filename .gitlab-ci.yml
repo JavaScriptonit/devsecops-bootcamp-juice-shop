@@ -38,6 +38,14 @@ yarn_test:
     - yarn install
     - yarn test
 
+gitleaks_check:
+  image: 
+    name: zricethezav/gitleaks
+    entrypoint: [""]
+  stage: test
+  script:
+    - gitleaks detect --verbose --source .
+    
 build_image:
   image: docker:24
   stage: build
