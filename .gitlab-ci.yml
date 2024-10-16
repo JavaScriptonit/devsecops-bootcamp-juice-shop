@@ -44,8 +44,12 @@ gitleaks_check:
     entrypoint: [""]
   stage: test
   script:
-    - gitleaks detect --verbose --source .
+    - gitleaks detect --verbose --source . -f json -r gitleaks.json
   allow_failure: true
+  artifacts:
+    when: always
+    paths: 
+      - gitleaks.json
 
 njsscan:
   image: python
@@ -53,8 +57,12 @@ njsscan:
   before_script:
     - pip3 install --upgrade njsscan
   script:
-    - njsscan --exit-warning .
+    - njsscan --exit-warning . --sarif -o njsscan.sarif
   allow_failure: true
+  artifacts:
+    when: always
+    paths: 
+      - njsscan.sarif 
 
 semgrep :
   image: semgrep/semgrep
@@ -62,8 +70,12 @@ semgrep :
   variables:
     SEMGREP_RULES: p/javascript
   script:
-    - semgrep ci --debug &> semgrep.log
+    - semgrep ci --json --output semgrep.json
   allow_failure: true
+  artifacts:
+    when: always
+    paths: 
+      - semgrep.json
 
 build_image:
   image: docker:24
