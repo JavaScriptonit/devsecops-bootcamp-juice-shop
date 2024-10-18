@@ -64,7 +64,7 @@ njsscan:
     paths: 
       - njsscan.sarif 
 
-semgrep :
+semgrep:
   image: semgrep/semgrep
   stage: test
   variables:
@@ -77,6 +77,14 @@ semgrep :
     paths: 
       - semgrep.json
 
+upload_reports:
+  image: python:latest
+  stage: test
+  before_script:
+    - pip install requests
+  script:
+    - python3 upload-reports.py
+
 build_image:
   image: docker:24
   stage: build
@@ -87,9 +95,6 @@ build_image:
   script:
     - docker build -t $IMAGE_NAME:$IMAGE_TAG .
     - docker push $IMAGE_NAME:$IMAGE_TAG
-
-
-
 
 
 
