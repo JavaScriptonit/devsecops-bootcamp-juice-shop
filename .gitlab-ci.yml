@@ -82,11 +82,34 @@ semgrep:
     paths: 
       - semgrep.json
 
+retire:
+  # Запускает SCA анализ зависимостей с помощью  и сохраняет результаты в  формате
+  image: node:18-bullseye
+  stage: test
+  before_script:
+    - npm install -g retire
+  script:
+    - retire --path . --outputformat json --outputpath retire.json
+  allow_failure: true
+  artifacts:
+    when: always
+    paths: 
+      - retire.json
+  cache:
+    key:
+      files:
+        - yarn.lock
+    paths:
+      - node_modules/
+      - yarn.lock
+      - .yarn
+    policy: pull-push
+
 upload_reports:
   # Загружает отчеты о безопасности на сервер, используя результаты предыдущих проверок
   image: python:latest
   stage: test
-  needs: ["gitleaks_check", "njsscan", "semgrep"]
+  needs: ["gitleaks_check", "njsscan", "semgrep", "retire"]
   when: always
   before_script:
     - pip install requests
@@ -94,6 +117,7 @@ upload_reports:
     - python3 upload-reports.py gitleaks.json
     - python3 upload-reports.py njsscan.sarif
     - python3 upload-reports.py semgrep.json
+    - python3 upload-reports.py retire.json
 
 build_image:
   image: docker:24

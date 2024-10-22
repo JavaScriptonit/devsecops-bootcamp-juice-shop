@@ -4,7 +4,7 @@ import sys
 
 # Перевыпуск токена - https://demo.defectdojo.org/api/key-v2
 headers = {
-    'Authorization': 'Token 15698ac529ea41bcb3d96aabf201eb3afe4801d2',
+    'Authorization': 'Token 20a04a97539f0ffd210a290e1fc29fae4650f46f',
     'Accept': 'application/json',
 }
 
@@ -23,6 +23,8 @@ elif report_file_name == 'njsscan.sarif':
     report_scan_type = 'SARIF'
 elif report_file_name == 'semgrep.json':
     report_scan_type = 'Semgrep JSON Report'
+elif report_file_name == 'retire.json':
+    report_scan_type = 'Retire.js Scan'
 
 # Данные для отправки
 files = {
@@ -35,7 +37,7 @@ data = {
     'verified': True,
     'scan_type': report_scan_type,
     'minimum_severity': 'Low',
-    'engagement': 28,  # Идентификатор вовлечения - https://demo.defectdojo.org/engagement/28
+    'engagement': 41,  # Идентификатор вовлечения - https://demo.defectdojo.org/engagement/28
 }
 
 # Отправка POST-запроса
