@@ -8,6 +8,7 @@ variables:
   IMAGE_TAG: 0.0.1
 
 create_cache:
+  # Устанавливает зависимости проекта и кэширует их для последующего использования
   stage: cache
   image: node:18-bullseye
   script:
@@ -23,6 +24,7 @@ create_cache:
     policy: pull-push
 
 yarn_test:
+  # Запускает тесты проекта, устанавливая зависимости из кэша
   image: node:18-bullseye
   stage: test
   cache:
@@ -39,6 +41,7 @@ yarn_test:
     - yarn test
 
 gitleaks_check:
+  # Выполняет проверку на утечки данных с помощью Gitleaks и сохраняет результаты в файл
   image: 
     name: zricethezav/gitleaks
     entrypoint: [""]
@@ -52,6 +55,7 @@ gitleaks_check:
       - gitleaks.json
 
 njsscan:
+  # Сканирует код на наличие уязвимостей с помощью njsscan и сохраняет результаты в SARIF формате
   image: python
   stage: test
   before_script:
@@ -65,6 +69,7 @@ njsscan:
       - njsscan.sarif 
 
 semgrep:
+  # Запускает статический анализ кода с помощью Semgrep и сохраняет результаты в JSON формате
   image: semgrep/semgrep
   stage: test
   variables:
@@ -78,6 +83,7 @@ semgrep:
       - semgrep.json
 
 upload_reports:
+  # Загружает отчеты о безопасности на сервер, используя результаты предыдущих проверок
   image: python:latest
   stage: test
   needs: ["gitleaks_check", "njsscan", "semgrep"]

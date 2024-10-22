@@ -2,6 +2,7 @@ import requests
 import os
 import sys
 
+# Перевыпуск токена - https://demo.defectdojo.org/api/key-v2
 headers = {
     'Authorization': 'Token 15698ac529ea41bcb3d96aabf201eb3afe4801d2',
     'Accept': 'application/json',
