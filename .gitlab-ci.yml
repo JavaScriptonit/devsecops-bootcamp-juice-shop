@@ -6,7 +6,7 @@ stages:
 
 variables:
   IMAGE_NAME: javascriptonit/devsecops-bootcamp
-  IMAGE_TAG: 0.0.1
+  IMAGE_TAG: 0.0.2
   SERVER_IP: 78.140.243.52
   SERVER_USER: root
 
@@ -25,7 +25,7 @@ create_cache:
       - yarn.lock
       - .yarn
     policy: pull-push
-  when: manual
+  # when: manual
 
 yarn_test:
   # Запускает тесты проекта, устанавливая зависимости из кэша
@@ -43,7 +43,7 @@ yarn_test:
   script:
     - yarn install
     - yarn test
-  when: manual
+  # when: manual
 
 gitleaks_check:
   # Выполняет проверку на утечки данных с помощью Gitleaks и сохраняет результаты в файл
@@ -58,7 +58,7 @@ gitleaks_check:
     when: always
     paths: 
       - gitleaks.json
-  when: manual
+  # when: manual
 
 njsscan:
   # Сканирует код на наличие уязвимостей с помощью njsscan и сохраняет результаты в SARIF формате
@@ -73,7 +73,7 @@ njsscan:
     when: always
     paths: 
       - njsscan.sarif 
-  when: manual
+  # when: manual
 
 semgrep:
   # Запускает статический анализ кода с помощью Semgrep и сохраняет результаты в JSON формате
@@ -88,7 +88,7 @@ semgrep:
     when: always
     paths: 
       - semgrep.json
-  when: manual
+  # when: manual
 
 retire:
   # Запускает SCA анализ зависимостей с помощью  и сохраняет результаты в формате
@@ -112,7 +112,7 @@ retire:
       - yarn.lock
       - .yarn
     policy: pull-push
-  when: manual
+  # when: manual
 
 upload_reports:
   # Загружает отчеты о безопасности на сервер, используя результаты предыдущих проверок
@@ -126,7 +126,7 @@ upload_reports:
     - python3 upload-reports.py njsscan.sarif
     - python3 upload-reports.py semgrep.json
     - python3 upload-reports.py retire.json
-  when: manual
+  # when: manual
 
 build_image:
   image: docker:24
@@ -138,7 +138,7 @@ build_image:
   script:
     - docker build -t $IMAGE_NAME:$IMAGE_TAG .
     - docker push $IMAGE_NAME:$IMAGE_TAG
-  when: manual
+  # when: manual
 
 deploy_image:
   stage: deploy
@@ -154,4 +154,4 @@ deploy_image:
     - ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker pull $IMAGE_NAME:$IMAGE_TAG"
     - ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker stop juice-shop || true && docker rm -f juice-shop || true"
     - ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d -p 3000:3000 --name juice-shop $IMAGE_NAME:$IMAGE_TAG"
-  when: manual
+  # when: manual
