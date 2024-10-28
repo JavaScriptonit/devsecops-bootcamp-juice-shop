@@ -180,8 +180,7 @@
     "unzipper": "0.9.15",
     "winston": "^3.3.3",
     "yaml-schema-validator": "^1.2.2",
-    "z85": "^0.0.2",
-    "feature-policy": "^0.6.0"
+    "z85": "^0.0.2"
   },
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
