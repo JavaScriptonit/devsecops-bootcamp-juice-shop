@@ -2,10 +2,13 @@ stages:
   - cache
   - test
   - build
+  - deploy
 
 variables:
   IMAGE_NAME: javascriptonit/devsecops-bootcamp
   IMAGE_TAG: 0.0.1
+  SERVER_IP: 78.140.243.52
+  SERVER_USER: root
 
 create_cache:
   # Устанавливает зависимости проекта и кэширует их для последующего использования
@@ -22,6 +25,7 @@ create_cache:
       - yarn.lock
       - .yarn
     policy: pull-push
+  when: manual
 
 yarn_test:
   # Запускает тесты проекта, устанавливая зависимости из кэша
@@ -39,6 +43,7 @@ yarn_test:
   script:
     - yarn install
     - yarn test
+  when: manual
 
 gitleaks_check:
   # Выполняет проверку на утечки данных с помощью Gitleaks и сохраняет результаты в файл
@@ -53,6 +58,7 @@ gitleaks_check:
     when: always
     paths: 
       - gitleaks.json
+  when: manual
 
 njsscan:
   # Сканирует код на наличие уязвимостей с помощью njsscan и сохраняет результаты в SARIF формате
@@ -67,6 +73,7 @@ njsscan:
     when: always
     paths: 
       - njsscan.sarif 
+  when: manual
 
 semgrep:
   # Запускает статический анализ кода с помощью Semgrep и сохраняет результаты в JSON формате
@@ -81,9 +88,10 @@ semgrep:
     when: always
     paths: 
       - semgrep.json
+  when: manual
 
 retire:
-  # Запускает SCA анализ зависимостей с помощью  и сохраняет результаты в  формате
+  # Запускает SCA анализ зависимостей с помощью  и сохраняет результаты в формате
   image: node:18-bullseye
   stage: test
   before_script:
@@ -104,13 +112,13 @@ retire:
       - yarn.lock
       - .yarn
     policy: pull-push
+  when: manual
 
 upload_reports:
   # Загружает отчеты о безопасности на сервер, используя результаты предыдущих проверок
   image: python:latest
   stage: test
   needs: ["gitleaks_check", "njsscan", "semgrep", "retire"]
-  when: always
   before_script:
     - pip install requests
   script:
@@ -118,6 +126,7 @@ upload_reports:
     - python3 upload-reports.py njsscan.sarif
     - python3 upload-reports.py semgrep.json
     - python3 upload-reports.py retire.json
+  when: manual
 
 build_image:
   image: docker:24
@@ -129,3 +138,20 @@ build_image:
   script:
     - docker build -t $IMAGE_NAME:$IMAGE_TAG .
     - docker push $IMAGE_NAME:$IMAGE_TAG
+  when: manual
+
+deploy_image:
+  stage: deploy
+  image: debian:bullseye-slim
+  before_script:
+    - apt update -y && apt install openssh-client -y
+    - eval $(ssh-agent -s)
+    - chmod 400 "$SSH_PRIVATE_KEY"
+    - ssh-add "$SSH_PRIVATE_KEY"
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+  script:
+    - ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker pull $IMAGE_NAME:$IMAGE_TAG"
+    - ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker stop juice-shop || true && docker rm -f juice-shop || true"
+    - ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d -p 3000:3000 --name juice-shop $IMAGE_NAME:$IMAGE_TAG"
+  when: manual
