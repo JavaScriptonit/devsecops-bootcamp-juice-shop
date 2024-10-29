@@ -1,11 +1,12 @@
 /*
- * Copyright (c) 2014-2023 Bjoern Kimminich & the OWASP Juice Shop contributors.
+ * Copyright (c) 2014-2024 Bjoern Kimminich & the OWASP Juice Shop contributors.
  * SPDX-License-Identifier: MIT
  */
 
 import frisby = require('frisby')
-import config = require('config')
-const path = require('path')
+import { expect } from '@jest/globals'
+import config from 'config'
+import path from 'path'
 const fs = require('fs')
 
 const jsonHeader = { 'content-type': 'application/json' }
@@ -21,7 +22,7 @@ describe('/rest/memories', () => {
     return frisby.post(REST_URL + '/user/login', {
       headers: jsonHeader,
       body: {
-        email: 'jim@' + config.get('application.domain'),
+        email: 'jim@' + config.get<string>('application.domain'),
         password: 'ncc-1701'
       }
     })
@@ -42,7 +43,7 @@ describe('/rest/memories', () => {
 
     return frisby.post(REST_URL + '/memories', {
       headers: {
-        // @ts-expect-error
+        // @ts-expect-error FIXME form.getHeaders() is not found
         'Content-Type': form.getHeaders()['content-type']
       },
       body: form
@@ -59,7 +60,7 @@ describe('/rest/memories', () => {
     return frisby.post(REST_URL + '/user/login', {
       headers: jsonHeader,
       body: {
-        email: 'jim@' + config.get('application.domain'),
+        email: 'jim@' + config.get<string>('application.domain'),
         password: 'ncc-1701'
       }
     })
@@ -68,7 +69,7 @@ describe('/rest/memories', () => {
         return frisby.post(REST_URL + '/memories', {
           headers: {
             Authorization: 'Bearer ' + jsonLogin.authentication.token,
-            // @ts-expect-error
+            // @ts-expect-error FIXME form.getHeaders() is not found
             'Content-Type': form.getHeaders()['content-type']
           },
           body: form
@@ -86,7 +87,7 @@ describe('/rest/memories', () => {
     return frisby.post(REST_URL + '/user/login', {
       headers: jsonHeader,
       body: {
-        email: 'jim@' + config.get('application.domain'),
+        email: 'jim@' + config.get<string>('application.domain'),
         password: 'ncc-1701'
       }
     })
@@ -95,7 +96,7 @@ describe('/rest/memories', () => {
         return frisby.post(REST_URL + '/memories', {
           headers: {
             Authorization: 'Bearer ' + jsonLogin.authentication.token,
-            // @ts-expect-error
+            // @ts-expect-error FIXME form.getHeaders() is not found
             'Content-Type': form.getHeaders()['content-type']
           },
           body: form

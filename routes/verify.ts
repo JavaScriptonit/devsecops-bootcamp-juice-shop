@@ -1,24 +1,32 @@
 /*
- * Copyright (c) 2014-2023 Bjoern Kimminich & the OWASP Juice Shop contributors.
+ * Copyright (c) 2014-2024 Bjoern Kimminich & the OWASP Juice Shop contributors.
  * SPDX-License-Identifier: MIT
  */
 
-import { Request, Response, NextFunction } from 'express'
-import { Challenge, Product } from '../data/types'
-import { JwtPayload, VerifyErrors } from 'jsonwebtoken'
+import { type Request, type Response, type NextFunction } from 'express'
+import { type Challenge, type Product } from '../data/types'
+import type { Product as ProductConfig } from '../lib/config.types'
+import { type JwtPayload, type VerifyErrors } from 'jsonwebtoken'
 import { FeedbackModel } from '../models/feedback'
 import { ComplaintModel } from '../models/complaint'
 import { Op } from 'sequelize'
 import challengeUtils = require('../lib/challengeUtils')
+import config from 'config'
+import jws from 'jws'
 
-const utils = require('../lib/utils')
+import * as utils from '../lib/utils'
 const security = require('../lib/insecurity')
 const jwt = require('jsonwebtoken')
-const jws = require('jws')
 const cache = require('../data/datacache')
 const challenges = cache.challenges
 const products = cache.products
-const config = require('config')
+
+exports.emptyUserRegistration = () => (req: Request, res: Response, next: NextFunction) => {
+  challengeUtils.solveIf(challenges.emptyUserRegistration, () => {
+    return req.body && req.body.email === '' && req.body.password === ''
+  })
+  next()
+}
 
 exports.forgedFeedbackChallenge = () => (req: Request, res: Response, next: NextFunction) => {
   challengeUtils.solveIf(challenges.forgedFeedbackChallenge, () => {
@@ -43,7 +51,9 @@ exports.captchaBypassChallenge = () => (req: Request, res: Response, next: NextF
 }
 
 exports.registerAdminChallenge = () => (req: Request, res: Response, next: NextFunction) => {
-  challengeUtils.solveIf(challenges.registerAdminChallenge, () => { return req.body && req.body.role === security.roles.admin })
+  challengeUtils.solveIf(challenges.registerAdminChallenge, () => {
+    return req.body && req.body.role === security.roles.admin
+  })
   next()
 }
 
@@ -54,6 +64,7 @@ exports.passwordRepeatChallenge = () => (req: Request, res: Response, next: Next
 
 exports.accessControlChallenges = () => ({ url }: Request, res: Response, next: NextFunction) => {
   challengeUtils.solveIf(challenges.scoreBoardChallenge, () => { return utils.endsWith(url, '/1px.png') })
+  challengeUtils.solveIf(challenges.web3SandboxChallenge, () => { return utils.endsWith(url, '/11px.png') })
   challengeUtils.solveIf(challenges.adminSectionChallenge, () => { return utils.endsWith(url, '/19px.png') })
   challengeUtils.solveIf(challenges.tokenSaleChallenge, () => { return utils.endsWith(url, '/56px.png') })
   challengeUtils.solveIf(challenges.privacyPolicyChallenge, () => { return utils.endsWith(url, '/81px.png') })
@@ -74,7 +85,7 @@ exports.jwtChallenges = () => (req: Request, res: Response, next: NextFunction) 
   if (challengeUtils.notSolved(challenges.jwtUnsignedChallenge)) {
     jwtChallenge(challenges.jwtUnsignedChallenge, req, 'none', /jwtn3d@/)
   }
-  if (!utils.disableOnWindowsEnv() && challengeUtils.notSolved(challenges.jwtForgedChallenge)) {
+  if (utils.isChallengeEnabled(challenges.jwtForgedChallenge) && challengeUtils.notSolved(challenges.jwtForgedChallenge)) {
     jwtChallenge(challenges.jwtForgedChallenge, req, 'HS256', /rsa_lord@/)
   }
   next()
@@ -146,13 +157,16 @@ exports.databaseRelatedChallenges = () => (req: Request, res: Response, next: Ne
   if (challengeUtils.notSolved(challenges.dlpPastebinDataLeakChallenge)) {
     dlpPastebinDataLeakChallenge()
   }
+  if (challengeUtils.notSolved(challenges.csafChallenge)) {
+    csafChallenge()
+  }
   next()
 }
 
 function changeProductChallenge (osaft: Product) {
   let urlForProductTamperingChallenge: string | null = null
   void osaft.reload().then(() => {
-    for (const product of config.products) {
+    for (const product of config.get<ProductConfig[]>('products')) {
       if (product.urlForProductTamperingChallenge !== undefined) {
         urlForProductTamperingChallenge = product.urlForProductTamperingChallenge
         break
@@ -160,7 +174,7 @@ function changeProductChallenge (osaft: Product) {
     }
     if (urlForProductTamperingChallenge) {
       if (!utils.contains(osaft.description, `${urlForProductTamperingChallenge}`)) {
-        if (utils.contains(osaft.description, `<a href="${config.get('challenges.overwriteUrlForProductTamperingChallenge')}" target="_blank">More...</a>`)) {
+        if (utils.contains(osaft.description, `<a href="${config.get<string>('challenges.overwriteUrlForProductTamperingChallenge')}" target="_blank">More...</a>`)) {
           challengeUtils.solve(challenges.changeProductChallenge)
         }
       }
@@ -371,11 +385,30 @@ function dlpPastebinDataLeakChallenge () {
   })
 }
 
-function dangerousIngredients () {
-  const ingredients: Array<{ [op: symbol]: string }> = []
-  const dangerousProduct = config.get('products').filter((product: Product) => product.keywordsForPastebinDataLeakChallenge)[0]
-  dangerousProduct.keywordsForPastebinDataLeakChallenge.forEach((keyword: string) => {
-    ingredients.push({ [Op.like]: `%${keyword}%` })
+function csafChallenge () {
+  FeedbackModel.findAndCountAll({ where: { comment: { [Op.like]: '%' + config.get<string>('challenges.csafHashValue') + '%' } } }
+  ).then(({ count }: { count: number }) => {
+    if (count > 0) {
+      challengeUtils.solve(challenges.csafChallenge)
+    }
+  }).catch(() => {
+    throw new Error('Unable to get data for known vulnerabilities. Please try again')
   })
-  return ingredients
+  ComplaintModel.findAndCountAll({ where: { message: { [Op.like]: '%' + config.get<string>('challenges.csafHashValue') + '%' } } }
+  ).then(({ count }: { count: number }) => {
+    if (count > 0) {
+      challengeUtils.solve(challenges.csafChallenge)
+    }
+  }).catch(() => {
+    throw new Error('Unable to get data for known vulnerabilities. Please try again')
+  })
+}
+
+function dangerousIngredients () {
+  return config.get<ProductConfig[]>('products')
+    .flatMap((product) => product.keywordsForPastebinDataLeakChallenge)
+    .filter(Boolean)
+    .map((keyword) => {
+      return { [Op.like]: `%${keyword}%` }
+    })
 }

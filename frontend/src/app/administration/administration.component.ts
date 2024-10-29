@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2023 Bjoern Kimminich & the OWASP Juice Shop contributors.
+ * Copyright (c) 2014-2024 Bjoern Kimminich & the OWASP Juice Shop contributors.
  * SPDX-License-Identifier: MIT
  */
 
@@ -9,20 +9,19 @@ import { MatDialog } from '@angular/material/dialog'
 import { FeedbackService } from '../Services/feedback.service'
 import { MatTableDataSource } from '@angular/material/table'
 import { UserService } from '../Services/user.service'
-import { Component, OnInit, ViewChild } from '@angular/core'
+import { Component, type OnInit, ViewChild } from '@angular/core'
 import { DomSanitizer } from '@angular/platform-browser'
-import { dom, library } from '@fortawesome/fontawesome-svg-core'
+import { library } from '@fortawesome/fontawesome-svg-core'
 import { faArchive, faEye, faHome, faTrashAlt, faUser } from '@fortawesome/free-solid-svg-icons'
 import { MatPaginator } from '@angular/material/paginator'
 
 library.add(faUser, faEye, faHome, faArchive, faTrashAlt)
-dom.watch()
 
 @Component({
   selector: 'app-administration',
   templateUrl: './administration.component.html',
   styleUrls: ['./administration.component.scss']
-  })
+})
 export class AdministrationComponent implements OnInit {
   public userDataSource: any
   public userDataSourceHidden: any
@@ -47,8 +46,7 @@ export class AdministrationComponent implements OnInit {
       this.userDataSource = users
       this.userDataSourceHidden = users
       for (const user of this.userDataSource) {
-        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-        user.email = this.sanitizer.bypassSecurityTrustHtml(`<span class="${user.token ? 'confirmation' : 'error'}">${user.email}</span>`)
+        user.email = this.sanitizer.bypassSecurityTrustHtml(`<span class="${this.doesUserHaveAnActiveSession(user) ? 'confirmation' : 'error'}">${user.email}</span>`)
       }
       this.userDataSource = new MatTableDataSource(this.userDataSource)
       this.userDataSource.paginator = this.paginatorUsers
@@ -86,7 +84,7 @@ export class AdministrationComponent implements OnInit {
   showUserDetail (id: number) {
     this.dialog.open(UserDetailsComponent, {
       data: {
-        id: id
+        id
       }
     })
   }
@@ -94,13 +92,18 @@ export class AdministrationComponent implements OnInit {
   showFeedbackDetails (feedback: any, id: number) {
     this.dialog.open(FeedbackDetailsComponent, {
       data: {
-        feedback: feedback,
-        id: id
+        feedback,
+        id
       }
     })
   }
 
   times (numberOfTimes: number) {
     return Array(numberOfTimes).fill('★')
+  }
+
+  doesUserHaveAnActiveSession (user: { email: string, lastLoginTime: number }) {
+    const SIX_HOURS_IN_SECONDS = 60 * 60 * 6
+    return user.lastLoginTime && user.lastLoginTime > ((Date.now() / 1000) - SIX_HOURS_IN_SECONDS)
   }
 }

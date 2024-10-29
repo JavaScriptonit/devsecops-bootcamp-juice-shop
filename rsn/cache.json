@@ -1,7 +1,7 @@
 {
 	"accessLogDisclosureChallenge_1_correct.ts": {
 		"added": [
-			13
+			16
 		],
 		"removed": []
 	},
@@ -40,21 +40,28 @@
 		"removed": []
 	},
 	"changeProductChallenge_1.ts": {
-		"added": [],
+		"added": [
+			43
+		],
 		"removed": []
 	},
 	"changeProductChallenge_2.ts": {
 		"added": [
-			18
+			18,
+			43
 		],
 		"removed": []
 	},
 	"changeProductChallenge_3_correct.ts": {
-		"added": [],
+		"added": [
+			43
+		],
 		"removed": []
 	},
 	"changeProductChallenge_4.ts": {
-		"added": [],
+		"added": [
+			43
+		],
 		"removed": []
 	},
 	"dbSchemaChallenge_1.ts": {
@@ -100,20 +107,31 @@
 		"removed": []
 	},
 	"exposedMetricsChallenge_1.ts": {
-		"added": [],
-		"removed": []
+		"added": [
+			7
+		],
+		"removed": [
+			7
+		]
 	},
 	"exposedMetricsChallenge_2.ts": {
 		"added": [
 			2,
-			19,
-			36
+			7,
+			16,
+			33
 		],
-		"removed": []
+		"removed": [
+			7
+		]
 	},
 	"exposedMetricsChallenge_3_correct.ts": {
-		"added": [],
-		"removed": []
+		"added": [
+			7
+		],
+		"removed": [
+			7
+		]
 	},
 	"forgedReviewChallenge_1.ts": {
 		"added": [
@@ -242,6 +260,38 @@
 			18
 		]
 	},
+	"nftMintChallenge_1.sol": {
+		"added": [],
+		"removed": []
+	},
+	"nftMintChallenge_2.sol": {
+		"added": [],
+		"removed": []
+	},
+	"nftMintChallenge_3.sol": {
+		"added": [],
+		"removed": []
+	},
+	"nftMintChallenge_4_correct.sol": {
+		"added": [],
+		"removed": []
+	},
+	"nftUnlockChallenge_1.sol": {
+		"added": [],
+		"removed": []
+	},
+	"nftUnlockChallenge_2_correct.sol": {
+		"added": [],
+		"removed": []
+	},
+	"nftUnlockChallenge_3.sol": {
+		"added": [],
+		"removed": []
+	},
+	"nftUnlockChallenge_4.sol": {
+		"added": [],
+		"removed": []
+	},
 	"noSqlReviewsChallenge_1.ts": {
 		"added": [
 			6
@@ -285,6 +335,7 @@
 	"redirectChallenge_3.ts": {
 		"added": [],
 		"removed": [
+			18,
 			19,
 			20,
 			21,
@@ -296,8 +347,7 @@
 			27,
 			28,
 			29,
-			30,
-			31
+			30
 		]
 	},
 	"redirectChallenge_4_correct.ts": {
@@ -350,6 +400,180 @@
 			5
 		]
 	},
+	"resetPasswordBenderChallenge_1.yml": {
+		"added": [],
+		"removed": []
+	},
+	"resetPasswordBenderChallenge_2_correct.yml": {
+		"added": [
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7,
+			8,
+			9,
+			10,
+			11,
+			12,
+			13,
+			14,
+			15,
+			16,
+			17,
+			18,
+			21,
+			22,
+			23,
+			24,
+			25,
+			26,
+			27,
+			28
+		],
+		"removed": [
+			1,
+			2,
+			3,
+			4
+		]
+	},
+	"resetPasswordBenderChallenge_3.yml": {
+		"added": [],
+		"removed": []
+	},
+	"resetPasswordBjoernChallenge_1_correct.yml": {
+		"added": [
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7,
+			8,
+			9,
+			10,
+			11,
+			12,
+			13,
+			14,
+			15,
+			16,
+			19,
+			20,
+			21,
+			22,
+			23,
+			24,
+			25,
+			26,
+			27,
+			28
+		],
+		"removed": [
+			1,
+			2,
+			3,
+			4
+		]
+	},
+	"resetPasswordBjoernChallenge_2.yml": {
+		"added": [],
+		"removed": []
+	},
+	"resetPasswordBjoernChallenge_3.yml": {
+		"added": [],
+		"removed": []
+	},
+	"resetPasswordBjoernOwaspChallenge_1.yml": {
+		"added": [],
+		"removed": []
+	},
+	"resetPasswordBjoernOwaspChallenge_2_correct.yml": {
+		"added": [
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7,
+			8,
+			9,
+			10,
+			11,
+			12,
+			15,
+			16,
+			17,
+			18,
+			19,
+			20,
+			21,
+			22,
+			23,
+			24,
+			25,
+			26,
+			27,
+			28
+		],
+		"removed": [
+			1,
+			2,
+			3,
+			4
+		]
+	},
+	"resetPasswordBjoernOwaspChallenge_3.yml": {
+		"added": [],
+		"removed": []
+	},
+	"resetPasswordJimChallenge_1.yml": {
+		"added": [],
+		"removed": []
+	},
+	"resetPasswordJimChallenge_2.yml": {
+		"added": [],
+		"removed": []
+	},
+	"resetPasswordJimChallenge_3_correct.yml": {
+		"added": [
+			3,
+			4,
+			5,
+			6,
+			7,
+			8,
+			9,
+			10,
+			11,
+			12,
+			13,
+			14,
+			15,
+			16,
+			17,
+			18,
+			19,
+			20,
+			21,
+			22,
+			23,
+			24,
+			25,
+			26,
+			27,
+			28
+		],
+		"removed": [
+			3,
+			4
+		]
+	},
 	"resetPasswordMortyChallenge_1.ts": {
 		"added": [
 			2
@@ -373,6 +597,50 @@
 	"resetPasswordMortyChallenge_4_correct.ts": {
 		"added": [],
 		"removed": []
+	},
+	"resetPasswordUvoginChallenge_1.yml": {
+		"added": [],
+		"removed": []
+	},
+	"resetPasswordUvoginChallenge_2.yml": {
+		"added": [],
+		"removed": []
+	},
+	"resetPasswordUvoginChallenge_3_correct.yml": {
+		"added": [
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7,
+			8,
+			9,
+			10,
+			11,
+			12,
+			13,
+			14,
+			15,
+			16,
+			17,
+			18,
+			19,
+			20,
+			21,
+			22,
+			25,
+			26,
+			27,
+			28
+		],
+		"removed": [
+			1,
+			2,
+			3,
+			4
+		]
 	},
 	"restfulXssChallenge_1_correct.ts": {
 		"added": [
@@ -501,6 +769,36 @@
 		]
 	},
 	"weakPasswordChallenge_4.ts": {
+		"added": [],
+		"removed": []
+	},
+	"web3SandboxChallenge_1_correct.ts": {
+		"added": [
+			170
+		],
+		"removed": []
+	},
+	"web3SandboxChallenge_2.ts": {
+		"added": [],
+		"removed": []
+	},
+	"web3SandboxChallenge_3.ts": {
+		"added": [],
+		"removed": []
+	},
+	"web3WalletChallenge_1.sol": {
+		"added": [],
+		"removed": []
+	},
+	"web3WalletChallenge_2.sol": {
+		"added": [],
+		"removed": []
+	},
+	"web3WalletChallenge_3_correct.sol": {
+		"added": [],
+		"removed": []
+	},
+	"web3WalletChallenge_4.sol": {
 		"added": [],
 		"removed": []
 	},

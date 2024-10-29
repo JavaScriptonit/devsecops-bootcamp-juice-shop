@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2014-2023 Bjoern Kimminich & the OWASP Juice Shop contributors.
+ * Copyright (c) 2014-2024 Bjoern Kimminich & the OWASP Juice Shop contributors.
  * SPDX-License-Identifier: MIT
  */
 
 import { Injectable } from '@angular/core'
-import { Backup } from '../Models/backup.model'
+import { type Backup } from '../Models/backup.model'
 import { CookieService } from 'ngx-cookie'
 import { saveAs } from 'file-saver'
 import { SnackBarHelperService } from './snack-bar-helper.service'
@@ -14,7 +14,7 @@ import { ChallengeService } from './challenge.service'
 
 @Injectable({
   providedIn: 'root'
-  })
+})
 export class LocalBackupService {
   private readonly VERSION = 1
 
@@ -23,13 +23,6 @@ export class LocalBackupService {
   save (fileName: string = 'owasp_juice_shop') {
     const backup: Backup = { version: this.VERSION }
 
-    backup.scoreBoard = {
-      displayedDifficulties: localStorage.getItem('displayedDifficulties') ? JSON.parse(String(localStorage.getItem('displayedDifficulties'))) : undefined,
-      showSolvedChallenges: localStorage.getItem('showSolvedChallenges') ? JSON.parse(String(localStorage.getItem('showSolvedChallenges'))) : undefined,
-      showDisabledChallenges: localStorage.getItem('showDisabledChallenges') ? JSON.parse(String(localStorage.getItem('showDisabledChallenges'))) : undefined,
-      showOnlyTutorialChallenges: localStorage.getItem('showOnlyTutorialChallenges') ? JSON.parse(String(localStorage.getItem('showOnlyTutorialChallenges'))) : undefined,
-      displayedChallengeCategories: localStorage.getItem('displayedChallengeCategories') ? JSON.parse(String(localStorage.getItem('displayedChallengeCategories'))) : undefined
-    }
     backup.banners = {
       welcomeBannerStatus: this.cookieService.get('welcomebanner_status') ? this.cookieService.get('welcomebanner_status') : undefined,
       cookieConsentStatus: this.cookieService.get('cookieconsent_status') ? this.cookieService.get('cookieconsent_status') : undefined
@@ -60,11 +53,6 @@ export class LocalBackupService {
       const backup: Backup = JSON.parse(backupData)
 
       if (backup.version === this.VERSION) {
-        this.restoreLocalStorage('displayedDifficulties', backup.scoreBoard?.displayedDifficulties)
-        this.restoreLocalStorage('showSolvedChallenges', backup.scoreBoard?.showSolvedChallenges)
-        this.restoreLocalStorage('showDisabledChallenges', backup.scoreBoard?.showDisabledChallenges)
-        this.restoreLocalStorage('showOnlyTutorialChallenges', backup.scoreBoard?.showOnlyTutorialChallenges)
-        this.restoreLocalStorage('displayedChallengeCategories', backup.scoreBoard?.displayedChallengeCategories)
         this.restoreCookie('welcomebanner_status', backup.banners?.welcomeBannerStatus)
         this.restoreCookie('cookieconsent_status', backup.banners?.cookieConsentStatus)
         this.restoreCookie('language', backup.language)
@@ -81,7 +69,7 @@ export class LocalBackupService {
           const fixItProgress = backup.continueCodeFixIt ? this.challengeService.restoreProgressFixIt(encodeURIComponent(backup.continueCodeFixIt)) : of(true)
           forkJoin([hackingProgress, findItProgress, fixItProgress]).subscribe(() => {
             location.reload()
-          }, (err) => console.log(err))
+          }, (err) => { console.log(err) })
         })
       } else {
         this.snackBarHelperService.open(`Version ${backup.version} is incompatible with expected version ${this.VERSION}`, 'errorBar')
@@ -98,14 +86,6 @@ export class LocalBackupService {
       this.cookieService.put(cookieName, cookieValue, { expires })
     } else {
       this.cookieService.remove(cookieName)
-    }
-  }
-
-  private restoreLocalStorage (propertyName: string, propertyValue: any) {
-    if (propertyValue) {
-      localStorage.setItem(propertyName, JSON.stringify(propertyValue))
-    } else {
-      localStorage.removeItem(propertyName)
     }
   }
 }

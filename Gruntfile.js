@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2023 Bjoern Kimminich & the OWASP Juice Shop contributors.
+ * Copyright (c) 2014-2024 Bjoern Kimminich & the OWASP Juice Shop contributors.
  * SPDX-License-Identifier: MIT
  */
 
@@ -33,6 +33,7 @@ module.exports = function (grunt) {
         files: [
           {
             src: [
+              '.well-known/**',
               'LICENSE',
               '*.md',
               'package.json',
@@ -42,12 +43,15 @@ module.exports = function (grunt) {
               'config.schema.yml',
               'build/**',
               '!build/reports/**',
+              'bom.json',
+              'bom.xml',
               'config/*.yml',
               'data/*.ts',
               'data/static/**',
               'data/chatbot/.gitkeep',
               'encryptionkeys/**',
               'frontend/dist/frontend/**',
+              'frontend/dist/bom/**',
               'frontend/src/**/*.ts',
               'ftp/**',
               'i18n/.gitkeep',
@@ -65,22 +69,20 @@ module.exports = function (grunt) {
     }
   })
 
-  grunt.registerTask('checksum', 'Create .sha256 checksum files', function () {
-    const fs = require('fs');
-    const crypto = require('crypto');
-  
+  grunt.registerTask('checksum', 'Create .md5 checksum files', function () {
+    const fs = require('fs')
+    const crypto = require('crypto')
     fs.readdirSync('dist/').forEach(file => {
-      const buffer = fs.readFileSync('dist/' + file);
-      const sha256 = crypto.createHash('sha256');
-      sha256.update(buffer);
-      const sha256Hash = sha256.digest('hex');
-      const sha256FileName = 'dist/' + file + '.sha256';
-  
-      grunt.file.write(sha256FileName, sha256Hash);
-      grunt.log.write(`Checksum ${sha256Hash} written to file ${sha256FileName}.`).verbose.write('...').ok();
-      grunt.log.writeln();
-    });
-  });
+      const buffer = fs.readFileSync('dist/' + file)
+      const md5 = crypto.createHash('md5')
+      md5.update(buffer)
+      const md5Hash = md5.digest('hex')
+      const md5FileName = 'dist/' + file + '.md5'
+      grunt.file.write(md5FileName, md5Hash)
+      grunt.log.write(`Checksum ${md5Hash} written to file ${md5FileName}.`).verbose.write('...').ok()
+      grunt.log.writeln()
+    })
+  })
 
   grunt.loadNpmTasks('grunt-replace-json')
   grunt.loadNpmTasks('grunt-contrib-compress')

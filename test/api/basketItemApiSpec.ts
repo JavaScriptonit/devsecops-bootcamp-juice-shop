@@ -1,10 +1,11 @@
 /*
- * Copyright (c) 2014-2023 Bjoern Kimminich & the OWASP Juice Shop contributors.
+ * Copyright (c) 2014-2024 Bjoern Kimminich & the OWASP Juice Shop contributors.
  * SPDX-License-Identifier: MIT
  */
 
 import frisby = require('frisby')
-import config = require('config')
+import { expect } from '@jest/globals'
+import config from 'config'
 
 const API_URL = 'http://localhost:3000/api'
 const REST_URL = 'http://localhost:3000/rest'
@@ -16,7 +17,7 @@ beforeAll(() => {
   return frisby.post(REST_URL + '/user/login', {
     headers: jsonHeader,
     body: {
-      email: 'jim@' + config.get('application.domain'),
+      email: 'jim@' + config.get<string>('application.domain'),
       password: 'ncc-1701'
     }
   })

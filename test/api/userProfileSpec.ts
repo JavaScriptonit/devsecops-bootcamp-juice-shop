@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2014-2023 Bjoern Kimminich & the OWASP Juice Shop contributors.
+ * Copyright (c) 2014-2024 Bjoern Kimminich & the OWASP Juice Shop contributors.
  * SPDX-License-Identifier: MIT
  */
 
 import frisby = require('frisby')
-import config = require('config')
+import config from 'config'
 
 const URL = 'http://localhost:3000'
 
@@ -30,7 +30,7 @@ describe('/profile', () => {
     return frisby.get(`${URL}/profile`)
       .expect('status', 500)
       .expect('header', 'content-type', /text\/html/)
-      .expect('bodyContains', `<h1>${config.get('application.name')} (Express`)
+      .expect('bodyContains', `<h1>${config.get<string>('application.name')} (Express`)
       .expect('bodyContains', 'Error: Blocked illegal activity')
   })
 
@@ -48,7 +48,7 @@ describe('/profile', () => {
     form.append('username', 'Localhorst')
 
     return frisby.post(`${URL}/profile`, {
-      // @ts-expect-error
+      // @ts-expect-error FIXME form.getHeaders() is not found
       headers: { 'Content-Type': form.getHeaders()['content-type'], Cookie: authHeader.Cookie },
       body: form,
       redirect: 'manual'
@@ -61,13 +61,13 @@ describe('/profile', () => {
     form.append('username', 'Localhorst')
 
     return frisby.post(`${URL}/profile`, {
-      // @ts-expect-error
+      // @ts-expect-error FIXME form.getHeaders() is not found
       headers: { 'Content-Type': form.getHeaders()['content-type'] },
       body: form
     })
       .expect('status', 500)
       .expect('header', 'content-type', /text\/html/)
-      .expect('bodyContains', `<h1>${config.get('application.name')} (Express`)
+      .expect('bodyContains', `<h1>${config.get<string>('application.name')} (Express`)
       .expect('bodyContains', 'Error: Blocked illegal activity')
   })
 })

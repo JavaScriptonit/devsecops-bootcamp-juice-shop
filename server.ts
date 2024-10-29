@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2014-2023 Bjoern Kimminich & the OWASP Juice Shop contributors.
+ * Copyright (c) 2014-2024 Bjoern Kimminich & the OWASP Juice Shop contributors.
  * SPDX-License-Identifier: MIT
  */
 import dataErasure from './routes/dataErasure'
 import fs = require('fs')
-import { Request, Response, NextFunction } from 'express'
+import { type Request, type Response, type NextFunction } from 'express'
 import { sequelize } from './models'
 import { UserModel } from './models/user'
 import { QuantityModel } from './models/quantity'
@@ -20,15 +20,31 @@ import { BasketItemModel } from './models/basketitem'
 import { FeedbackModel } from './models/feedback'
 import { ProductModel } from './models/product'
 import { WalletModel } from './models/wallet'
+import logger from './lib/logger'
+import config from 'config'
+import path from 'path'
+import morgan from 'morgan'
+import colors from 'colors/safe'
+import * as utils from './lib/utils'
+import * as Prometheus from 'prom-client'
+import datacreator from './data/datacreator'
+
+import validatePreconditions from './lib/startup/validatePreconditions'
+import cleanupFtpFolder from './lib/startup/cleanupFtpFolder'
+import validateConfig from './lib/startup/validateConfig'
+import restoreOverwrittenFilesWithOriginals from './lib/startup/restoreOverwrittenFilesWithOriginals'
+import registerWebsocketEvents from './lib/startup/registerWebsocketEvents'
+import customizeApplication from './lib/startup/customizeApplication'
+import customizeEasterEgg from './lib/startup/customizeEasterEgg' // vuln-code-snippet hide-line
+
+import authenticatedUsers from './routes/authenticatedUsers'
+
 const startTime = Date.now()
-const path = require('path')
-const morgan = require('morgan')
-const colors = require('colors/safe')
 const finale = require('finale-rest')
 const express = require('express')
 const compression = require('compression')
 const helmet = require('helmet')
-const permissionsPolicy = require('permissions-policy')
+const featurePolicy = require('feature-policy')
 const errorhandler = require('errorhandler')
 const cookieParser = require('cookie-parser')
 const serveIndex = require('serve-index')
@@ -39,7 +55,6 @@ const robots = require('express-robots-txt')
 const yaml = require('js-yaml')
 const swaggerUi = require('swagger-ui-express')
 const RateLimit = require('express-rate-limit')
-const client = require('prom-client')
 const ipfilter = require('express-ipfilter').IpFilter
 const swaggerDocument = yaml.load(fs.readFileSync('./swagger.yml', 'utf8'))
 const {
@@ -67,7 +82,6 @@ const quarantineServer = require('./routes/quarantineServer')
 const keyServer = require('./routes/keyServer')
 const logFileServer = require('./routes/logfileServer')
 const metrics = require('./routes/metrics')
-const authenticatedUsers = require('./routes/authenticatedUsers')
 const currentUser = require('./routes/currentUser')
 const login = require('./routes/login')
 const changePassword = require('./routes/changePassword')
@@ -82,12 +96,12 @@ const recycles = require('./routes/recycles')
 const b2bOrder = require('./routes/b2bOrder')
 const showProductReviews = require('./routes/showProductReviews')
 const createProductReviews = require('./routes/createProductReviews')
+const checkKeys = require('./routes/checkKeys')
+const nftMint = require('./routes/nftMint')
+const web3Wallet = require('./routes/web3Wallet')
 const updateProductReviews = require('./routes/updateProductReviews')
 const likeProductReviews = require('./routes/likeProductReviews')
-const logger = require('./lib/logger')
-const utils = require('./lib/utils')
 const security = require('./lib/insecurity')
-const datacreator = require('./data/datacreator')
 const app = express()
 const server = require('http').Server(app)
 const appConfiguration = require('./routes/appConfiguration')
@@ -101,7 +115,6 @@ const updateUserProfile = require('./routes/updateUserProfile')
 const videoHandler = require('./routes/videoHandler')
 const twoFactorAuth = require('./routes/2fa')
 const languageList = require('./routes/languages')
-const config = require('config')
 const imageCaptcha = require('./routes/imageCaptcha')
 const dataExport = require('./routes/dataExport')
 const address = require('./routes/address')
@@ -114,34 +127,36 @@ const memory = require('./routes/memory')
 const chatbot = require('./routes/chatbot')
 const locales = require('./data/static/locales.json')
 const i18n = require('i18n')
+const antiCheat = require('./lib/antiCheat')
 
-const appName = config.get('application.customMetricsPrefix')
-const startupGauge = new client.Gauge({
+const appName = config.get<string>('application.customMetricsPrefix')
+const startupGauge = new Prometheus.Gauge({
   name: `${appName}_startup_duration_seconds`,
   help: `Duration ${appName} required to perform a certain task during startup`,
   labelNames: ['task']
 })
 
 // Wraps the function and measures its (async) execution time
-const collectDurationPromise = (name: string, func: Function) => {
+const collectDurationPromise = (name: string, func: (...args: any) => Promise<any>) => {
   return async (...args: any) => {
     const end = startupGauge.startTimer({ task: name })
-    const res = await func(...args)
-    end()
-    return res
+    try {
+      const res = await func(...args)
+      end()
+      return res
+    } catch (err) {
+      console.error('Error in timed startup function: ' + name, err)
+      throw err
+    }
   }
-}
-void collectDurationPromise('validatePreconditions', require('./lib/startup/validatePreconditions'))()
-void collectDurationPromise('cleanupFtpFolder', require('./lib/startup/cleanupFtpFolder'))()
-void collectDurationPromise('validateConfig', require('./lib/startup/validateConfig'))()
-
-// Reloads the i18n files in case of server restarts or starts.
-async function restoreOverwrittenFilesWithOriginals () {
-  await collectDurationPromise('restoreOverwrittenFilesWithOriginals', require('./lib/startup/restoreOverwrittenFilesWithOriginals'))()
 }
 
 /* Sets view engine to hbs */
 app.set('view engine', 'hbs')
+
+void collectDurationPromise('validatePreconditions', validatePreconditions)()
+void collectDurationPromise('cleanupFtpFolder', cleanupFtpFolder)()
+void collectDurationPromise('validateConfig', validateConfig)({})
 
 // Function called first to ensure that all the i18n files are reloaded successfully before other linked operations.
 restoreOverwrittenFilesWithOriginals().then(() => {
@@ -162,20 +177,9 @@ restoreOverwrittenFilesWithOriginals().then(() => {
   /* Security middleware */
   app.use(helmet.noSniff())
   app.use(helmet.frameguard())
-  app.use(helmet.contentSecurityPolicy({
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'"],
-      imgSrc: ["'self'"],
-      connectSrc: ["'self'"],
-      frameAncestors: ["'self'"],
-      formAction: ["'self'"]
-    }
-  }))
   // app.use(helmet.xssFilter()); // = no protection from persisted XSS via RESTful API
   app.disable('x-powered-by')
-  app.use(permissionsPolicy({
+  app.use(featurePolicy({
     features: {
       payment: ["'self'"]
     }
@@ -206,11 +210,15 @@ restoreOverwrittenFilesWithOriginals().then(() => {
     acknowledgements: config.get('application.securityTxt.acknowledgements'),
     'Preferred-Languages': [...new Set(locales.map((locale: { key: string }) => locale.key.substr(0, 2)))].join(', '),
     hiring: config.get('application.securityTxt.hiring'),
+    csaf: config.get<string>('server.baseUrl') + config.get<string>('application.securityTxt.csaf'),
     expires: securityTxtExpiration.toUTCString()
   }))
 
   /* robots.txt */
   app.use(robots({ UserAgent: '*', Disallow: '/ftp' }))
+
+  /* Check for any URLs having been called that would be expected for challenge solving without cheating */
+  app.use(antiCheat.checkForPreSolveInteractions())
 
   /* Checks for challenges solved by retrieving a file implicitly or explicitly */
   app.use('/assets/public/images/padding', verify.accessControlChallenges())
@@ -224,11 +232,11 @@ restoreOverwrittenFilesWithOriginals().then(() => {
   /* Create middleware to change paths from the serve-index plugin from absolute to relative */
   const serveIndexMiddleware = (req: Request, res: Response, next: NextFunction) => {
     const origEnd = res.end
-    // @ts-expect-error
+    // @ts-expect-error FIXME assignment broken due to seemingly void return value
     res.end = function () {
       if (arguments.length) {
         const reqPath = req.originalUrl.replace(/\?.*$/, '')
-        const currentFolder = reqPath.split('/').pop()
+        const currentFolder = reqPath.split('/').pop() as string
         arguments[0] = arguments[0].replace(/a href="([^"]+?)"/gi, function (matchString: string, matchedUrl: string) {
           let relativePath = path.relative(reqPath, matchedUrl)
           if (relativePath === '') {
@@ -241,7 +249,7 @@ restoreOverwrittenFilesWithOriginals().then(() => {
           return 'a href="' + relativePath + '"'
         })
       }
-      // @ts-expect-error
+      // @ts-expect-error FIXME passed argument has wrong type
       origEnd.apply(this, arguments)
     }
     next()
@@ -252,6 +260,9 @@ restoreOverwrittenFilesWithOriginals().then(() => {
   app.use('/ftp', serveIndexMiddleware, serveIndex('ftp', { icons: true })) // vuln-code-snippet vuln-line directoryListingChallenge
   app.use('/ftp(?!/quarantine)/:file', fileServer()) // vuln-code-snippet vuln-line directoryListingChallenge
   app.use('/ftp/quarantine/:file', quarantineServer()) // vuln-code-snippet neutral-line directoryListingChallenge
+
+  app.use('/.well-known', serveIndexMiddleware, serveIndex('.well-known', { icons: true, view: 'details' }))
+  app.use('/.well-known', express.static('.well-known'))
 
   /* /encryptionkeys directory browsing */
   app.use('/encryptionkeys', serveIndexMiddleware, serveIndex('encryptionkeys', { icons: true, view: 'details' }))
@@ -288,7 +299,7 @@ restoreOverwrittenFilesWithOriginals().then(() => {
 
   app.use(bodyParser.text({ type: '*/*' }))
   app.use(function jsonParser (req: Request, res: Response, next: NextFunction) {
-    // @ts-expect-error
+    // @ts-expect-error FIXME intentionally saving original request in this property
     req.rawBody = req.body
     if (req.headers['content-type']?.includes('application/json')) {
       if (!req.body) {
@@ -316,7 +327,7 @@ restoreOverwrittenFilesWithOriginals().then(() => {
   app.use('/rest/user/reset-password', new RateLimit({
     windowMs: 5 * 60 * 1000,
     max: 100,
-    keyGenerator ({ headers, ip }: { headers: any, ip: any }) { return headers['X-Forwarded-For'] || ip } // vuln-code-snippet vuln-line resetPasswordMortyChallenge
+    keyGenerator ({ headers, ip }: { headers: any, ip: any }) { return headers['X-Forwarded-For'] ?? ip } // vuln-code-snippet vuln-line resetPasswordMortyChallenge
   }))
   // vuln-code-snippet end resetPasswordMortyChallenge
 
@@ -372,8 +383,21 @@ restoreOverwrittenFilesWithOriginals().then(() => {
   /* Captcha Bypass challenge verification */
   app.post('/api/Feedbacks', verify.captchaBypassChallenge())
   /* User registration challenge verifications before finale takes over */
+  app.post('/api/Users', (req: Request, res: Response, next: NextFunction) => {
+    if (req.body.email !== undefined && req.body.password !== undefined && req.body.passwordRepeat !== undefined) {
+      if (req.body.email.length !== 0 && req.body.password.length !== 0) {
+        req.body.email = req.body.email.trim()
+        req.body.password = req.body.password.trim()
+        req.body.passwordRepeat = req.body.passwordRepeat.trim()
+      } else {
+        res.status(400).send(res.__('Invalid email/password cannot be empty'))
+      }
+    }
+    next()
+  })
   app.post('/api/Users', verify.registerAdminChallenge())
   app.post('/api/Users', verify.passwordRepeatChallenge()) // vuln-code-snippet hide-end
+  app.post('/api/Users', verify.emptyUserRegistration())
   /* Unauthorized users are not allowed to access B2B API */
   app.use('/b2b/v2', security.isAuthorized())
   /* Check if the quantity is available in stock and limit per user not exceeded, then add item to basket */
@@ -581,6 +605,13 @@ restoreOverwrittenFilesWithOriginals().then(() => {
   app.patch('/rest/products/reviews', security.isAuthorized(), updateProductReviews())
   app.post('/rest/products/reviews', security.isAuthorized(), likeProductReviews())
 
+  /* Web3 API endpoints */
+  app.post('/rest/web3/submitKey', checkKeys.checkKeys())
+  app.get('/rest/web3/nftUnlocked', checkKeys.nftUnlocked())
+  app.get('/rest/web3/nftMintListen', nftMint.nftMintListener())
+  app.post('/rest/web3/walletNFTVerify', nftMint.walletNFTVerify())
+  app.post('/rest/web3/walletExploitAddress', web3Wallet.contractExploitListener())
+
   /* B2B Order API */
   app.post('/b2b/v2/orders', b2bOrder())
 
@@ -628,7 +659,7 @@ const mimeTypeMap: any = {
 }
 const uploadToDisk = multer({
   storage: multer.diskStorage({
-    destination: (req: Request, file: any, cb: Function) => {
+    destination: (req: Request, file: any, cb: any) => {
       const isValid = mimeTypeMap[file.mimetype]
       let error: Error | null = new Error('Invalid mime type')
       if (isValid) {
@@ -636,7 +667,7 @@ const uploadToDisk = multer({
       }
       cb(error, path.resolve('frontend/dist/frontend/assets/public/images/uploads/'))
     },
-    filename: (req: Request, file: any, cb: Function) => {
+    filename: (req: Request, file: any, cb: any) => {
       const name = security.sanitizeFilename(file.originalname)
         .toLowerCase()
         .split(' ')
@@ -649,22 +680,18 @@ const uploadToDisk = multer({
 
 const expectedModels = ['Address', 'Basket', 'BasketItem', 'Captcha', 'Card', 'Challenge', 'Complaint', 'Delivery', 'Feedback', 'ImageCaptcha', 'Memory', 'PrivacyRequestModel', 'Product', 'Quantity', 'Recycle', 'SecurityAnswer', 'SecurityQuestion', 'User', 'Wallet']
 while (!expectedModels.every(model => Object.keys(sequelize.models).includes(model))) {
-  logger.info(`Entity models ${colors.bold(Object.keys(sequelize.models).length)} of ${colors.bold(expectedModels.length)} are initialized (${colors.yellow('WAITING')})`)
+  logger.info(`Entity models ${colors.bold(Object.keys(sequelize.models).length.toString())} of ${colors.bold(expectedModels.length.toString())} are initialized (${colors.yellow('WAITING')})`)
 }
-logger.info(`Entity models ${colors.bold(Object.keys(sequelize.models).length)} of ${colors.bold(expectedModels.length)} are initialized (${colors.green('OK')})`)
+logger.info(`Entity models ${colors.bold(Object.keys(sequelize.models).length.toString())} of ${colors.bold(expectedModels.length.toString())} are initialized (${colors.green('OK')})`)
 
 // vuln-code-snippet start exposedMetricsChallenge
 /* Serve metrics */
 let metricsUpdateLoop: any
 const Metrics = metrics.observeMetrics() // vuln-code-snippet neutral-line exposedMetricsChallenge
-const customizeEasterEgg = require('./lib/startup/customizeEasterEgg') // vuln-code-snippet hide-line
 app.get('/metrics', metrics.serveMetrics()) // vuln-code-snippet vuln-line exposedMetricsChallenge
-errorhandler.title = `${config.get('application.name')} (Express ${utils.version('express')})`
+errorhandler.title = `${config.get<string>('application.name')} (Express ${utils.version('express')})`
 
-const registerWebsocketEvents = require('./lib/startup/registerWebsocketEvents')
-const customizeApplication = require('./lib/startup/customizeApplication')
-
-export async function start (readyCallback: Function) {
+export async function start (readyCallback?: () => void) {
   const datacreatorEnd = startupGauge.startTimer({ task: 'datacreator' })
   await sequelize.sync({ force: true })
   await datacreator()
@@ -675,10 +702,10 @@ export async function start (readyCallback: Function) {
   metricsUpdateLoop = Metrics.updateLoop() // vuln-code-snippet neutral-line exposedMetricsChallenge
 
   server.listen(port, () => {
-    logger.info(colors.cyan(`Server listening on port ${colors.bold(port)}`))
+    logger.info(colors.cyan(`Server listening on port ${colors.bold(`${port}`)}`))
     startupGauge.set({ task: 'ready' }, (Date.now() - startTime) / 1000)
     if (process.env.BASE_PATH !== '') {
-      logger.info(colors.cyan(`Server using proxy base path ${colors.bold(process.env.BASE_PATH)} for redirects`))
+      logger.info(colors.cyan(`Server using proxy base path ${colors.bold(`${process.env.BASE_PATH}`)} for redirects`))
     }
     registerWebsocketEvents(server)
     if (readyCallback) {
@@ -702,5 +729,5 @@ export function close (exitCode: number | undefined) {
 // vuln-code-snippet end exposedMetricsChallenge
 
 // stop server on sigint or sigterm signals
-process.on('SIGINT', () => close(0))
-process.on('SIGTERM', () => close(0))
+process.on('SIGINT', () => { close(0) })
+process.on('SIGTERM', () => { close(0) })

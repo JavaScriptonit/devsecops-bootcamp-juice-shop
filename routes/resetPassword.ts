@@ -1,16 +1,16 @@
 /*
- * Copyright (c) 2014-2023 Bjoern Kimminich & the OWASP Juice Shop contributors.
+ * Copyright (c) 2014-2024 Bjoern Kimminich & the OWASP Juice Shop contributors.
  * SPDX-License-Identifier: MIT
  */
 
-import config = require('config')
-import { Request, Response, NextFunction } from 'express'
-import { Memory } from '../data/types'
+import config from 'config'
+import { type Request, type Response, type NextFunction } from 'express'
+import type { Memory as MemoryConfig } from '../lib/config.types'
 import { SecurityAnswerModel } from '../models/securityAnswer'
 import { UserModel } from '../models/user'
+import { challenges } from '../data/datacache'
 
 import challengeUtils = require('../lib/challengeUtils')
-const challenges = require('../data/datacache').challenges
 const users = require('../data/datacache').users
 const security = require('../lib/insecurity')
 
@@ -33,7 +33,7 @@ module.exports = function resetPassword () {
           where: { email }
         }]
       }).then((data: SecurityAnswerModel | null) => {
-        if (data && security.hmac(answer) === data.answer) {
+        if ((data != null) && security.hmac(answer) === data.answer) {
           UserModel.findByPk(data.UserId).then((user: UserModel | null) => {
             user?.update({ password: newPassword }).then((user: UserModel) => {
               verifySecurityAnswerChallenges(user, answer)
@@ -63,7 +63,7 @@ function verifySecurityAnswerChallenges (user: UserModel, answer: string) {
   challengeUtils.solveIf(challenges.resetPasswordUvoginChallenge, () => { return user.id === users.uvogin.id && answer === 'Silence of the Lambs' })
   challengeUtils.solveIf(challenges.geoStalkingMetaChallenge, () => {
     const securityAnswer = ((() => {
-      const memories: Memory[] = config.get('memories')
+      const memories = config.get<MemoryConfig[]>('memories')
       for (let i = 0; i < memories.length; i++) {
         if (memories[i].geoStalkingMetaSecurityAnswer) {
           return memories[i].geoStalkingMetaSecurityAnswer
@@ -74,7 +74,7 @@ function verifySecurityAnswerChallenges (user: UserModel, answer: string) {
   })
   challengeUtils.solveIf(challenges.geoStalkingVisualChallenge, () => {
     const securityAnswer = ((() => {
-      const memories: Memory[] = config.get('memories')
+      const memories = config.get<MemoryConfig[]>('memories')
       for (let i = 0; i < memories.length; i++) {
         if (memories[i].geoStalkingVisualSecurityAnswer) {
           return memories[i].geoStalkingVisualSecurityAnswer

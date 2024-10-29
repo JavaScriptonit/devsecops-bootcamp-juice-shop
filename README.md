@@ -10,7 +10,7 @@
 [![Maintainability](https://api.codeclimate.com/v1/badges/6206c8f3972bcc97a033/maintainability)](https://codeclimate.com/github/juice-shop/juice-shop/maintainability)
 [![Code Climate technical debt](https://img.shields.io/codeclimate/tech-debt/juice-shop/juice-shop)](https://codeclimate.com/github/juice-shop/juice-shop/trends/technical_debt)
 [![Cypress tests](https://img.shields.io/endpoint?url=https://dashboard.cypress.io/badge/simple/3hrkhu/master&style=flat&logo=cypress)](https://dashboard.cypress.io/projects/3hrkhu/runs)
-[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/223/badge)](https://bestpractices.coreinfrastructure.org/projects/223)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/223/badge)](https://www.bestpractices.dev/projects/223)
 ![GitHub stars](https://img.shields.io/github/stars/juice-shop/juice-shop.svg?label=GitHub%20%E2%98%85&style=flat)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
 
@@ -43,11 +43,6 @@ For a detailed introduction, full list of features and architecture overview ple
     - [Packaged Distributions](#packaged-distributions)
     - [Docker Container](#docker-container)
     - [Vagrant](#vagrant)
-    - [Amazon EC2 Instance](#amazon-ec2-instance)
-    - [Azure Container Instance](#azure-container-instance)
-    - [Google Compute Engine Instance](#google-compute-engine-instance)
-    - [Heroku](#heroku)
-    - [Gitpod](#gitpod)
 - [Demo](#demo)
 - [Documentation](#documentation)
     - [Node.js version compatibility](#nodejs-version-compatibility)
@@ -62,8 +57,8 @@ For a detailed introduction, full list of features and architecture overview ple
 
 ## Setup
 
-> You can find some less common installation variations in
-> [the _Running OWASP Juice Shop_ documentation](https://pwning.owasp-juice.shop/part1/running.html).
+> You can find some less common installation variations as well as instructions to run Juice Shop on a variety of cloud computing providers in
+> [the _Running OWASP Juice Shop_ documentation](https://pwning.owasp-juice.shop/companion-guide/latest/part1/running.html).
 
 ### From Sources
 
@@ -107,7 +102,7 @@ For a detailed introduction, full list of features and architecture overview ple
 
 1. Install [Docker](https://www.docker.com)
 2. Run `docker pull bkimminich/juice-shop`
-3. Run `docker run --rm -p 3000:3000 bkimminich/juice-shop`
+3. Run `docker run --rm -p 127.0.0.1:3000:3000 bkimminich/juice-shop`
 4. Browse to <http://localhost:3000> (on macOS and Windows browse to
    <http://192.168.99.100:3000> if you are using docker-machine instead of the native docker installation)
 
@@ -120,73 +115,6 @@ For a detailed introduction, full list of features and architecture overview ple
    of the repository)
 3. Run `cd vagrant && vagrant up`
 4. Browse to [192.168.56.110](http://192.168.56.110)
-
-### Amazon EC2 Instance
-
-1. In the _EC2_ sidenav select _Instances_ and click _Launch Instance_
-2. In _Step 1: Choose an Amazon Machine Image (AMI)_ choose an _Amazon Linux AMI_ or _Amazon Linux 2 AMI_
-3. In _Step 3: Configure Instance Details_ unfold _Advanced Details_ and copy the script below into _User Data_
-4. In _Step 6: Configure Security Group_ add a _Rule_ that opens port 80 for HTTP
-5. Launch your instance
-6. Browse to your instance's public DNS
-
-```
-#!/bin/bash
-yum update -y
-yum install -y docker
-service docker start
-docker pull bkimminich/juice-shop
-docker run -d -p 80:3000 bkimminich/juice-shop
-```
-
-### Azure Container Instance
-
-1. Open and login (via `az login`) to your
-   [Azure CLI](https://azure.github.io/projects/clis/) **or** login to the [Azure Portal](https://portal.azure.com),
-   open the _CloudShell_
-   and then choose _Bash_ (not PowerShell).
-2. Create a resource group by running `az group create --name <group name> --location <location name, e.g. "centralus">`
-3. Create a new container by
-   running `az container create --resource-group <group name> --name <container name> --image bkimminich/juice-shop --dns-name-label <dns name label> --ports 3000 --ip-address public`
-4. Your container will be available at `http://<dns name label>.<location name>.azurecontainer.io:3000`
-
-### Google Compute Engine Instance
-
-1. Login to the Google Cloud Console and
-   [open Cloud Shell](https://console.cloud.google.com/home/dashboard?cloudshell=true).
-2. Launch a new GCE instance based on the juice-shop container. Take note of the `EXTERNAL_IP` provided in the output.
-
-```
-gcloud compute instances create-with-container owasp-juice-shop-app --container-image bkimminich/juice-shop
-```
-
-3. Create a firewall rule that allows inbound traffic to port 3000
-
-```
-gcloud compute firewall-rules create juice-rule --allow tcp:3000
-```
-
-4. Your container is now running and available at
-   `http://<EXTERNAL_IP>:3000/`
-
-### Heroku
-
-1. [Sign up to Heroku](https://signup.heroku.com/) and
-   [log in to your account](https://id.heroku.com/login)
-2. Click the button below and follow the instructions
-
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
-
-If you have forked the Juice Shop repository on GitHub, the _Deploy to
-Heroku_ button will deploy your forked version of the application.
-
-### Gitpod 
-
-1. Login to [gitpod.io](https://gitpod.io) and use <https://gitpod.io/#https://github.com/juice-shop/juice-shop/> to start a new workspace. If you want to spin up a forked repository, your URL needs to be adjusted accordingly.
-
-2. After the Gitpod workspace is loaded, Gitpod tasks is still running to install `npm install`  and launch the website. Despite Gitpod showing your workspace state already as _Running_, you need to wait until the installation process is done, before the website becomes accessable. The _Open Preview Window (Internal Browser)_, will open automatically and refresh itself automatically when the server has started.
-
-3. Your Juice Shop instance is now also available at `https://3000-<GITPOD_WORKSPACE_ID>.<GITPOD_HOSTING_ZONE>.gitpod.io`.
 
 ## Demo
 
@@ -209,16 +137,15 @@ OWASP Juice Shop officially supports the following versions of
 [node.js LTS schedule](https://github.com/nodejs/LTS) as close as possible. Docker images and packaged distributions are
 offered accordingly.
 
-| node.js | Supported            | Tested             | [Packaged Distributions](#packaged-distributions) | [Docker images](#docker-container) from `master` | [Docker images](#docker-container) from `develop` |
-|:--------|:---------------------|:-------------------|:--------------------------------------------------|:-------------------------------------------------|:--------------------------------------------------|
-| 20.x    | :x:                  | :x:                |                                                   |                                                  |                                                   |
-| 19.x    | (:heavy_check_mark:) | :heavy_check_mark: |                                                   |                                                  |                                                   |
-| 18.x    | :heavy_check_mark:   | :heavy_check_mark: | Windows (`x64`), MacOS (`x64`), Linux (`x64`)     | `latest` (`linux/amd64`, `linux/arm64`)          | `snapshot` (`linux/amd64`, `linux/arm64`)         |
-| 17.x    | (:heavy_check_mark:) | :x:                |                                                   |                                                  |                                                   |
-| 16.x    | :heavy_check_mark:   | :heavy_check_mark: | Windows (`x64`), MacOS (`x64`), Linux (`x64`)     |                                                  |                                                   |
-| 15.x    | (:heavy_check_mark:) | :x:                |                                                   |                                                  |                                                   |
-| 14.x    | :heavy_check_mark:   | :heavy_check_mark: | Windows (`x64`), MacOS (`x64`), Linux (`x64`)     |                                                  | `                                                 |
-| <14.x   | :x:                  | :x:                |                                                   |                                                  |                                                   |
+| node.js | Supported               | Tested                                                    | [Packaged Distributions](#packaged-distributions) | [Docker images](#docker-container) from `master` | [Docker images](#docker-container) from `develop` |
+|:--------|:------------------------|:----------------------------------------------------------|:--------------------------------------------------|:-------------------------------------------------|:--------------------------------------------------|
+| 23.x    | :x:                     | :x:                                                       |                                                   |                                                  |                                                   |
+| 22.x    | :heavy_check_mark:      | :heavy_check_mark:                                        | Windows (`x64`), MacOS (`x64`), Linux (`x64`)     |                                                  |                                                   |
+| 21.x    | ( :heavy_check_mark:  ) | :heavy_check_mark:                                        | Windows (`x64`), MacOS (`x64`), Linux (`x64`)     |                                                  |                                                   |
+| 20.x    | :heavy_check_mark:      | :heavy_check_mark:                                        | Windows (`x64`), MacOS (`x64`), Linux (`x64`)     | `latest` (`linux/amd64`, `linux/arm64`)          | `snapshot` (`linux/amd64`, `linux/arm64`)         |
+| 19.x    | ( :heavy_check_mark: )  | :x:                                                       |                                                   |                                                  |                                                   |
+| 18.x    | :heavy_check_mark:      | :heavy_check_mark:                                        | Windows (`x64`), MacOS (`x64`), Linux (`x64`)     |                                                  |                                                   |
+| <18.x   | :x:                     | :x:                                                       |                                                   |                                                  |                                                   |
 
 Juice Shop is automatically tested _only on the latest `.x` minor version_ of each node.js version mentioned above!
 There is no guarantee that older minor node.js releases will always work with Juice Shop!
@@ -242,9 +169,9 @@ guide. If this does not solve your issue please post your specific problem or qu
 OWASP Juice Shop comes with an official companion guide eBook. It will give you a complete overview of all
 vulnerabilities found in the application including hints how to spot and exploit them. In the appendix you will even
 find complete step-by-step solutions to every challenge. Extensive documentation of
-[custom re-branding](https://pwning.owasp-juice.shop/part1/customization.html),
-[CTF-support](https://pwning.owasp-juice.shop/part1/ctf.html),
-[trainer's guide](https://pwning.owasp-juice.shop/appendix/trainers.html)
+[custom re-branding](https://pwning.owasp-juice.shop/companion-guide/latest/part4/customization.html),
+[CTF-support](https://pwning.owasp-juice.shop/companion-guide/latest/part4/ctf.html),
+[trainer's guide](https://pwning.owasp-juice.shop/companion-guide/latest/part4/trainers.html)
 and much more is also included.
 
 [Pwning OWASP Juice Shop](https://leanpub.com/juice-shop) is published under
@@ -252,11 +179,12 @@ and much more is also included.
 and is available **for free** in PDF, Kindle and ePub format on LeanPub. You can also
 [browse the full content online](https://pwning.owasp-juice.shop)!
 
-[![Pwning OWASP Juice Shop Cover](https://raw.githubusercontent.com/bkimminich/pwning-juice-shop/master/cover_small.jpg)](https://leanpub.com/juice-shop)
+[<img alt="Pwning OWASP Juice Shop cover" src="https://raw.githubusercontent.com/juice-shop/pwning-juice-shop/master/docs/modules/ROOT/assets/images/cover.jpg" width="200"/>](https://leanpub.com/juice-shop)
+[<img alt="Pwning OWASP Juice Shop back cover" src="https://raw.githubusercontent.com/juice-shop/pwning-juice-shop/master/docs/modules/ROOT/assets/images/introduction/back.jpg" width="200"/>](https://leanpub.com/juice-shop)
 
 ## Contributing
 
-[![GitHub contributors](https://img.shields.io/github/contributors/bkimminich/juice-shop.svg)](https://github.com/bkimminich/juice-shop/graphs/contributors)
+[![GitHub contributors](https://img.shields.io/github/contributors/bkimminich/juice-shop.svg)](https://github.com/juice-shop/juice-shop/graphs/contributors)
 [![JavaScript Style Guide](https://img.shields.io/badge/code%20style-standard-brightgreen.svg)](http://standardjs.com/)
 [![Crowdin](https://d322cqt584bo4o.cloudfront.net/owasp-juice-shop/localized.svg)](https://crowdin.com/project/owasp-juice-shop)
 ![GitHub issues by-label](https://img.shields.io/github/issues/bkimminich/juice-shop/help%20wanted.svg)
@@ -283,15 +211,6 @@ Add it to our ever-growing list of [REFERENCES.md](REFERENCES.md) by forking and
   [StickerYou.com](https://www.stickeryou.com/products/owasp-juice-shop/794)
   you can get variants of the OWASP Juice Shop logo as single stickers to decorate your laptop with. They can also print
   magnets, iron-ons, sticker sheets and temporary tattoos.
-
-The most honorable way to get some stickers is to
-[contribute to the project](https://pwning.owasp-juice.shop/part3/contribution.html)
-by fixing an issue, finding a serious bug or submitting a good idea for a new challenge!
-
-We're also happy to supply you with stickers if you organize a meetup or conference talk where you use or talk about or
-hack the OWASP Juice Shop! Just
-[contact the mailing list](mailto:owasp_juice_shop_project@lists.owasp.org)
-or [the project leader](mailto:bjoern.kimminich@owasp.org) to discuss your plans!
 
 ## Donations
 
@@ -324,6 +243,6 @@ For a list of all contributors to the OWASP Juice Shop please visit our
 
 This program is free software: you can redistribute it and/or modify it under the terms of the [MIT license](LICENSE).
 OWASP Juice Shop and any contributions are Copyright © by Bjoern Kimminich & the OWASP Juice Shop contributors
-2014-2023.
+2014-2024.
 
 ![Juice Shop Logo](https://raw.githubusercontent.com/bkimminich/juice-shop/master/frontend/src/assets/public/images/JuiceShop_Logo_400px.png)

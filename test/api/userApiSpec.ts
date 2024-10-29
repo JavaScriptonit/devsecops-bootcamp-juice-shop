@@ -1,8 +1,10 @@
 /*
- * Copyright (c) 2014-2023 Bjoern Kimminich & the OWASP Juice Shop contributors.
+ * Copyright (c) 2014-2024 Bjoern Kimminich & the OWASP Juice Shop contributors.
  * SPDX-License-Identifier: MIT
  */
 
+import { challenges } from '../../data/datacache'
+import { expect } from '@jest/globals'
 import frisby = require('frisby')
 const Joi = frisby.Joi
 const utils = require('../../lib/utils')
@@ -73,6 +75,60 @@ describe('/api/Users', () => {
       })
   })
 
+  it('POST new blank user', () => {
+    return frisby.post(`${API_URL}/Users`, {
+      headers: jsonHeader,
+      body: {
+        email: ' ',
+        password: ' '
+      }
+    })
+      .expect('status', 201)
+      .expect('header', 'content-type', /application\/json/)
+      .expect('jsonTypes', 'data', {
+        id: Joi.number(),
+        createdAt: Joi.string(),
+        updatedAt: Joi.string(),
+        password: Joi.any().forbidden()
+      })
+  })
+
+  it('POST same blank user in database', () => {
+    return frisby.post(`${API_URL}/Users`, {
+      headers: jsonHeader,
+      body: {
+        email: ' ',
+        password: ' '
+      }
+    }).post(`${API_URL}/Users`, {
+      headers: jsonHeader,
+      body: {
+        email: ' ',
+        password: ' '
+      }
+    })
+      .expect('status', 400)
+      .expect('header', 'content-type', /application\/json/)
+  })
+
+  it('POST whitespaces user', () => {
+    return frisby.post(`${API_URL}/Users`, {
+      headers: jsonHeader,
+      body: {
+        email: ' test@gmail.com',
+        password: ' test'
+      }
+    })
+      .expect('status', 201)
+      .expect('header', 'content-type', /application\/json/)
+      .expect('jsonTypes', 'data', {
+        id: Joi.number(),
+        created: Joi.string(),
+        updatedAt: Joi.string(),
+        password: Joi.any().forbidden()
+      })
+  })
+
   it('POST new deluxe user', () => {
     return frisby.post(`${API_URL}/Users`, {
       headers: jsonHeader,
@@ -135,7 +191,7 @@ describe('/api/Users', () => {
       })
   })
 
-  if (!utils.disableOnContainerEnv()) {
+  if (utils.isChallengeEnabled(challenges.usernameXssChallenge)) {
     it('POST new user with XSS attack in email address', () => {
       return frisby.post(`${API_URL}/Users`, {
         headers: jsonHeader,
@@ -186,24 +242,6 @@ describe('/api/Users/:id', () => {
   it('DELETE existing user is forbidden via API even when authenticated', () => {
     return frisby.del(`${API_URL}/Users/1`, { headers: authHeader })
       .expect('status', 401)
-  })
-})
-
-describe('/rest/user/authentication-details', () => {
-  it('GET all users decorated with attribute for authentication token', () => {
-    return frisby.get(`${REST_URL}/user/authentication-details`, { headers: authHeader })
-      .expect('status', 200)
-      .expect('jsonTypes', 'data.?', {
-        token: Joi.string()
-      })
-  })
-
-  it('GET all users with password replaced by asterisks', () => {
-    return frisby.get(`${REST_URL}/user/authentication-details`, { headers: authHeader })
-      .expect('status', 200)
-      .expect('json', 'data.?', {
-        password: '********************************'
-      })
   })
 })
 

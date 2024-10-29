@@ -1,29 +1,29 @@
 /*
- * Copyright (c) 2014-2023 Bjoern Kimminich & the OWASP Juice Shop contributors.
+ * Copyright (c) 2014-2024 Bjoern Kimminich & the OWASP Juice Shop contributors.
  * SPDX-License-Identifier: MIT
  */
 
+import os from 'os'
 import fs = require('fs')
 import challengeUtils = require('../lib/challengeUtils')
-import { NextFunction, Request, Response } from 'express'
+import { type NextFunction, type Request, type Response } from 'express'
+import path from 'path'
+import * as utils from '../lib/utils'
+import { challenges } from '../data/datacache'
 
-const utils = require('../lib/utils')
-const challenges = require('../data/datacache').challenges
-const libxml = require('libxmljs2')
-const os = require('os')
+const libxml = require('libxmljs')
 const vm = require('vm')
 const unzipper = require('unzipper')
-const path = require('path')
 
 function ensureFileIsPassed ({ file }: Request, res: Response, next: NextFunction) {
-  if (file) {
+  if (file != null) {
     next()
   }
 }
 
 function handleZipFileUpload ({ file }: Request, res: Response, next: NextFunction) {
   if (utils.endsWith(file?.originalname.toLowerCase(), '.zip')) {
-    if (file?.buffer && !utils.disableOnContainerEnv()) {
+    if (((file?.buffer) != null) && utils.isChallengeEnabled(challenges.fileWriteChallenge)) {
       const buffer = file.buffer
       const filename = file.originalname.toLowerCase()
       const tempFile = path.join(os.tmpdir(), filename)
@@ -55,7 +55,7 @@ function handleZipFileUpload ({ file }: Request, res: Response, next: NextFuncti
 }
 
 function checkUploadSize ({ file }: Request, res: Response, next: NextFunction) {
-  if (file) {
+  if (file != null) {
     challengeUtils.solveIf(challenges.uploadSizeChallenge, () => { return file?.size > 100000 })
   }
   next()
@@ -72,7 +72,7 @@ function checkFileType ({ file }: Request, res: Response, next: NextFunction) {
 function handleXmlUpload ({ file }: Request, res: Response, next: NextFunction) {
   if (utils.endsWith(file?.originalname.toLowerCase(), '.xml')) {
     challengeUtils.solveIf(challenges.deprecatedInterfaceChallenge, () => { return true })
-    if (file?.buffer && !utils.disableOnContainerEnv()) { // XXE attacks in Docker/Heroku containers regularly cause "segfault" crashes
+    if (((file?.buffer) != null) && utils.isChallengeEnabled(challenges.deprecatedInterfaceChallenge)) { // XXE attacks in Docker/Heroku containers regularly cause "segfault" crashes
       const data = file.buffer.toString()
       try {
         const sandbox = { libxml, data }

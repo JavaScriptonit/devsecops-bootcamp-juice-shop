@@ -1,19 +1,25 @@
 /*
- * Copyright (c) 2014-2023 Bjoern Kimminich & the OWASP Juice Shop contributors.
+ * Copyright (c) 2014-2024 Bjoern Kimminich & the OWASP Juice Shop contributors.
  * SPDX-License-Identifier: MIT
  */
 
-import config = require('config')
-const notifications = require('../../data/datacache').notifications
-const utils = require('../utils')
-const challengeUtils = require('../challengeUtils')
-const security = require('../insecurity')
-const challenges = require('../../data/datacache').challenges
+import config from 'config'
+import * as utils from '../utils'
+import { Server } from 'socket.io'
+import { notifications, challenges } from '../../data/datacache'
+import * as challengeUtils from '../challengeUtils'
+import * as security from '../insecurity'
+
 let firstConnectedSocket: any = null
 
+const globalWithSocketIO = global as typeof globalThis & {
+  io: SocketIOClientStatic & Server
+}
+
 const registerWebsocketEvents = (server: any) => {
-  const io = require('socket.io')(server)
-  global.io = io
+  const io = new Server(server, { cors: { origin: 'http://localhost:4200' } })
+  // @ts-expect-error FIXME Type safety issue when setting global socket-io object
+  globalWithSocketIO.io = io
 
   io.on('connection', (socket: any) => {
     if (firstConnectedSocket === null) {
@@ -47,4 +53,4 @@ const registerWebsocketEvents = (server: any) => {
   })
 }
 
-module.exports = registerWebsocketEvents
+export default registerWebsocketEvents

@@ -1,19 +1,20 @@
 /*
- * Copyright (c) 2014-2023 Bjoern Kimminich & the OWASP Juice Shop contributors.
+ * Copyright (c) 2014-2024 Bjoern Kimminich & the OWASP Juice Shop contributors.
  * SPDX-License-Identifier: MIT
  */
 
-import config = require('config')
-const replace = require('replace')
-const utils = require('../utils')
+import config from 'config'
+import * as utils from '../utils'
+// @ts-expect-error FIXME due to non-existing type definitions for replace
+import replace from 'replace'
 
-const customizeEasterEgg = () => {
+const customizeEasterEgg = async () => {
   if (config.has('application.easterEggPlanet.overlayMap')) {
     let overlay: string = config.get('application.easterEggPlanet.overlayMap')
     if (utils.isUrl(overlay)) {
       const overlayPath = overlay
       overlay = utils.extractFilename(overlay)
-      utils.downloadToFile(overlayPath, 'frontend/dist/frontend/assets/private/' + overlay)
+      await utils.downloadToFile(overlayPath, 'frontend/dist/frontend/assets/private/' + overlay)
     }
     replaceImagePath(overlay)
   }
@@ -34,7 +35,7 @@ const replaceImagePath = (overlay: string) => {
 }
 
 const replaceThreeJsTitleTag = () => {
-  const threeJsTitleTag = '<title>Welcome to Planet ' + config.get('application.easterEggPlanet.name') + '</title>'
+  const threeJsTitleTag = '<title>Welcome to Planet ' + config.get<string>('application.easterEggPlanet.name') + '</title>'
   replace({
     regex: /<title>.*<\/title>/,
     replacement: threeJsTitleTag,
@@ -44,4 +45,4 @@ const replaceThreeJsTitleTag = () => {
   })
 }
 
-module.exports = customizeEasterEgg
+export default customizeEasterEgg

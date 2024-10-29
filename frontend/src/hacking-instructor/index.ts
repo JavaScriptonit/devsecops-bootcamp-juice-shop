@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2023 Bjoern Kimminich & the OWASP Juice Shop contributors.
+ * Copyright (c) 2014-2024 Bjoern Kimminich & the OWASP Juice Shop contributors.
  * SPDX-License-Identifier: MIT
  */
 
@@ -17,6 +17,8 @@ import { BonusPayloadInstruction } from './challenges/bonusPayload'
 import { LoginBenderInstruction } from './challenges/loginBender'
 import { TutorialUnavailableInstruction } from './tutorialUnavailable'
 import { CodingChallengesInstruction } from './challenges/codingChallenges'
+import { AdminSectionInstruction } from './challenges/adminSection'
+import { ReflectedXssInstruction } from './challenges/reflectedXss'
 
 const challengeInstructions: ChallengeInstruction[] = [
   ScoreBoardInstruction,
@@ -29,7 +31,9 @@ const challengeInstructions: ChallengeInstruction[] = [
   PasswordStrengthInstruction,
   BonusPayloadInstruction,
   LoginBenderInstruction,
-  CodingChallengesInstruction
+  CodingChallengesInstruction,
+  AdminSectionInstruction,
+  ReflectedXssInstruction
 ]
 
 export interface ChallengeInstruction {
@@ -155,12 +159,12 @@ async function waitForCancel (element: HTMLElement) {
   })
 }
 
-export function hasInstructions (challengeName: String): boolean {
+export function hasInstructions (challengeName: string): boolean {
   return challengeInstructions.find(({ name }) => name === challengeName) !== undefined
 }
 
-export async function startHackingInstructorFor (challengeName: String): Promise<void> {
-  const challengeInstruction = challengeInstructions.find(({ name }) => name === challengeName) || TutorialUnavailableInstruction
+export async function startHackingInstructorFor (challengeName: string): Promise<void> {
+  const challengeInstruction = challengeInstructions.find(({ name }) => name === challengeName) ?? TutorialUnavailableInstruction
 
   for (const hint of challengeInstruction.hints) {
     const element = loadHint(hint)
@@ -170,7 +174,8 @@ export async function startHackingInstructorFor (challengeName: String): Promise
     }
     element.scrollIntoView()
 
-    const continueConditions: Array<Promise<void | {}>> = [
+    // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+    const continueConditions: Array<Promise<void | unknown>> = [
       hint.resolved()
     ]
 

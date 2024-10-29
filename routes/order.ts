@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2014-2023 Bjoern Kimminich & the OWASP Juice Shop contributors.
+ * Copyright (c) 2014-2024 Bjoern Kimminich & the OWASP Juice Shop contributors.
  * SPDX-License-Identifier: MIT
  */
 
 import path = require('path')
-import { Request, Response, NextFunction } from 'express'
+import { type Request, type Response, type NextFunction } from 'express'
 import { BasketModel } from '../models/basket'
 import { ProductModel } from '../models/product'
 import { BasketItemModel } from '../models/basketitem'
@@ -12,17 +12,16 @@ import { QuantityModel } from '../models/quantity'
 import { DeliveryModel } from '../models/delivery'
 import { WalletModel } from '../models/wallet'
 import challengeUtils = require('../lib/challengeUtils')
+import config from 'config'
+import * as utils from '../lib/utils'
+import * as db from '../data/mongodb'
+import { challenges, products } from '../data/datacache'
 
 const fs = require('fs')
 const PDFDocument = require('pdfkit')
-const utils = require('../lib/utils')
 const security = require('../lib/insecurity')
-const products = require('../data/datacache').products
-const challenges = require('../data/datacache').challenges
-const config = require('config')
-const db = require('../data/mongodb')
 
-interface Product{
+interface Product {
   quantity: number
   id?: number
   name: string
@@ -36,7 +35,7 @@ module.exports = function placeOrder () {
     const id = req.params.id
     BasketModel.findOne({ where: { id }, include: [{ model: ProductModel, paranoid: false, as: 'Products' }] })
       .then(async (basket: BasketModel | null) => {
-        if (basket) {
+        if (basket != null) {
           const customer = security.authenticatedUsers.from(req)
           const email = customer ? customer.data ? customer.data.email : '' : ''
           const orderId = security.hash(email).slice(0, 4) + '-' + utils.randomHexString(16)
@@ -51,7 +50,7 @@ module.exports = function placeOrder () {
             res.json({ orderConfirmation: orderId })
           })
 
-          doc.font('Times-Roman', 40).text(config.get('application.name'), { align: 'center' })
+          doc.font('Times-Roman', 40).text(config.get<string>('application.name'), { align: 'center' })
           doc.moveTo(70, 115).lineTo(540, 115).stroke()
           doc.moveTo(70, 120).lineTo(540, 120).stroke()
           doc.fontSize(20).moveDown()
@@ -67,7 +66,7 @@ module.exports = function placeOrder () {
           const basketProducts: Product[] = []
           let totalPoints = 0
           basket.Products?.forEach(({ BasketItem, price, deluxePrice, name, id }) => {
-            if (BasketItem) {
+            if (BasketItem != null) {
               challengeUtils.solveIf(challenges.christmasSpecialChallenge, () => { return BasketItem.ProductId === products.christmasSpecial.id })
               QuantityModel.findOne({ where: { ProductId: BasketItem.ProductId } }).then((product: any) => {
                 const newQuantity = product.quantity - BasketItem.quantity
@@ -87,7 +86,7 @@ module.exports = function placeOrder () {
               const itemBonus = Math.round(itemPrice / 10) * BasketItem.quantity
               const product = {
                 quantity: BasketItem.quantity,
-                id: id,
+                id,
                 name: req.__(name),
                 price: itemPrice,
                 total: itemTotal,
@@ -116,7 +115,7 @@ module.exports = function placeOrder () {
           }
           if (req.body.orderDetails?.deliveryMethodId) {
             const deliveryMethodFromModel = await DeliveryModel.findOne({ where: { id: req.body.orderDetails.deliveryMethodId } })
-            if (deliveryMethodFromModel) {
+            if (deliveryMethodFromModel != null) {
               deliveryMethod.deluxePrice = deliveryMethodFromModel.deluxePrice
               deliveryMethod.price = deliveryMethodFromModel.price
               deliveryMethod.eta = deliveryMethodFromModel.eta
@@ -139,7 +138,7 @@ module.exports = function placeOrder () {
           if (req.body.UserId) {
             if (req.body.orderDetails && req.body.orderDetails.paymentId === 'wallet') {
               const wallet = await WalletModel.findOne({ where: { UserId: req.body.UserId } })
-              if (wallet && wallet.balance >= totalPrice) {
+              if ((wallet != null) && wallet.balance >= totalPrice) {
                 WalletModel.decrement({ balance: totalPrice }, { where: { UserId: req.body.UserId } }).catch((error: unknown) => {
                   next(error)
                 })
@@ -152,14 +151,14 @@ module.exports = function placeOrder () {
             })
           }
 
-          db.orders.insert({
+          db.ordersCollection.insert({
             promotionalAmount: discountAmount,
             paymentId: req.body.orderDetails ? req.body.orderDetails.paymentId : null,
             addressId: req.body.orderDetails ? req.body.orderDetails.addressId : null,
-            orderId: orderId,
+            orderId,
             delivered: false,
             email: (email ? email.replace(/[aeiou]/gi, '*') : undefined),
-            totalPrice: totalPrice,
+            totalPrice,
             products: basketProducts,
             bonus: totalPoints,
             deliveryPrice: deliveryAmount,

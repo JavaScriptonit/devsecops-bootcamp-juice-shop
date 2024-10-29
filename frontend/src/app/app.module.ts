@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2023 Bjoern Kimminich & the OWASP Juice Shop contributors.
+ * Copyright (c) 2014-2024 Bjoern Kimminich & the OWASP Juice Shop contributors.
  * SPDX-License-Identifier: MIT
  */
 
@@ -7,7 +7,7 @@ import { BrowserModule } from '@angular/platform-browser'
 import { NgModule, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core'
 import { HTTP_INTERCEPTORS, HttpClient, HttpClientModule } from '@angular/common/http'
 import { CookieModule, CookieService } from 'ngx-cookie'
-import { ReactiveFormsModule } from '@angular/forms'
+import { ReactiveFormsModule, FormsModule } from '@angular/forms'
 import { Routing } from './app.routing'
 import { OverlayContainer } from '@angular/cdk/overlay'
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core'
@@ -16,13 +16,11 @@ import { QRCodeModule } from 'anuglar2-qrcode'
 import { ClipboardModule } from 'ngx-clipboard'
 import { FileUploadModule } from 'ng2-file-upload'
 import { SlideshowModule } from 'ng-simple-slideshow'
-import { NgxSpinnerModule } from 'ngx-spinner'
 import { AppComponent } from './app.component'
 import { AboutComponent } from './about/about.component'
 import { AdministrationComponent } from './administration/administration.component'
 import { BasketComponent } from './basket/basket.component'
 import { LoginComponent } from './login/login.component'
-import { ScoreBoardComponent } from './score-board/score-board.component'
 import { NavbarComponent } from './navbar/navbar.component'
 import { WelcomeComponent } from './welcome/welcome.component'
 import { WelcomeBannerComponent } from './welcome-banner/welcome-banner.component'
@@ -43,6 +41,7 @@ import {
   ChallengeSolvedNotificationComponent
 } from './challenge-solved-notification/challenge-solved-notification.component'
 import { OAuthComponent } from './oauth/oauth.component'
+import { NFTUnlockComponent } from './nft-unlock/nft-unlock.component'
 import { TokenSaleComponent } from './token-sale/token-sale.component'
 import { ProductReviewEditComponent } from './product-review-edit/product-review-edit.component'
 import { TwoFactorAuthEnterComponent } from './two-factor-auth-enter/two-factor-auth-enter.component'
@@ -68,6 +67,7 @@ import { BasketService } from './Services/basket.service'
 import { ChallengeService } from './Services/challenge.service'
 import { DataSubjectService } from './Services/data-subject.service'
 import { ImageCaptchaService } from './Services/image-captcha.service'
+import { KeysService } from './Services/keys.service'
 import { AddressService } from './Services/address.service'
 import { QuantityService } from './Services/quantity.service'
 import { FlexLayoutModule } from '@angular/flex-layout'
@@ -100,6 +100,7 @@ import { MatSnackBarModule } from '@angular/material/snack-bar'
 import { MatRadioModule } from '@angular/material/radio'
 import { MatBadgeModule } from '@angular/material/badge'
 import { HighlightModule, HIGHLIGHT_OPTIONS } from 'ngx-highlightjs'
+import { ScoreBoardModule } from './score-board/score-board.module'
 import { TwoFactorAuthComponent } from './two-factor-auth/two-factor-auth.component'
 import { DataExportComponent } from './data-export/data-export.component'
 import { LastLoginIpComponent } from './last-login-ip/last-login-ip.component'
@@ -149,7 +150,6 @@ export function HttpLoaderFactory (http: HttpClient) {
     AdministrationComponent,
     BasketComponent,
     LoginComponent,
-    ScoreBoardComponent,
     NavbarComponent,
     WelcomeComponent,
     WelcomeBannerComponent,
@@ -169,6 +169,7 @@ export function HttpLoaderFactory (http: HttpClient) {
     ChallengeSolvedNotificationComponent,
     OAuthComponent,
     TokenSaleComponent,
+    NFTUnlockComponent,
     ProductReviewEditComponent,
     TwoFactorAuthEnterComponent,
     SidenavComponent,
@@ -223,9 +224,9 @@ export function HttpLoaderFactory (http: HttpClient) {
     QRCodeModule,
     FileUploadModule,
     ClipboardModule,
-    NgxSpinnerModule,
     MatToolbarModule,
     MatIconModule,
+    FormsModule,
     MatFormFieldModule,
     MatSelectModule,
     MatButtonModule,
@@ -256,7 +257,8 @@ export function HttpLoaderFactory (http: HttpClient) {
     MatSlideToggleModule,
     MatChipsModule,
     NgxTextDiffModule,
-    HighlightModule
+    HighlightModule,
+    ScoreBoardModule
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   providers: [
@@ -301,6 +303,7 @@ export function HttpLoaderFactory (http: HttpClient) {
     AccountingGuard,
     DeluxeGuard,
     ImageCaptchaService,
+    KeysService,
     AddressService,
     QuantityService,
     WalletService,
@@ -310,7 +313,6 @@ export function HttpLoaderFactory (http: HttpClient) {
   ],
   bootstrap: [AppComponent]
 })
-
 export class AppModule {
   constructor (public configurationService: ConfigurationService, public overlayContainer: OverlayContainer) {
     configurationService.getApplicationConfiguration().subscribe((conf) => {

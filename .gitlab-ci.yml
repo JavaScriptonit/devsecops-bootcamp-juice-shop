@@ -6,7 +6,7 @@ stages:
 
 variables:
   IMAGE_NAME: javascriptonit/devsecops-bootcamp
-  IMAGE_TAG: 0.0.2
+  IMAGE_TAG: 0.0.3
   SERVER_IP: 78.140.243.52
   SERVER_USER: root
 

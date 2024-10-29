@@ -1,13 +1,14 @@
 /*
- * Copyright (c) 2014-2023 Bjoern Kimminich & the OWASP Juice Shop contributors.
+ * Copyright (c) 2014-2024 Bjoern Kimminich & the OWASP Juice Shop contributors.
  * SPDX-License-Identifier: MIT
  */
 
 import frisby = require('frisby')
-import config = require('config')
-const { initialize, bot } = require('../../routes/chatbot')
-const fs = require('fs')
-const utils = require('../../lib/utils')
+import { expect } from '@jest/globals'
+import config from 'config'
+import { initialize, bot } from '../../routes/chatbot'
+import fs from 'fs/promises'
+import * as utils from '../../lib/utils'
 
 const URL = 'http://localhost:3000'
 const REST_URL = `${URL}/rest/`
@@ -15,7 +16,7 @@ const API_URL = `${URL}/api/`
 let trainingData: { data: any[] }
 
 async function login ({ email, password }: { email: string, password: string }) {
-  // @ts-expect-error
+  // @ts-expect-error FIXME promise return handling broken
   const loginRes = await frisby
     .post(REST_URL + '/user/login', {
       email,
@@ -33,7 +34,7 @@ async function login ({ email, password }: { email: string, password: string }) 
 describe('/chatbot', () => {
   beforeAll(async () => {
     await initialize()
-    trainingData = JSON.parse(fs.readFileSync(`data/chatbot/${utils.extractFilename(config.get('application.chatBot.trainingData'))}`, { encoding: 'utf8' }))
+    trainingData = JSON.parse(await fs.readFile(`data/chatbot/${utils.extractFilename(config.get('application.chatBot.trainingData'))}`, { encoding: 'utf8' }))
   })
 
   describe('/status', () => {
@@ -51,7 +52,7 @@ describe('/chatbot', () => {
 
     it('GET bot state for authenticated users contains request for username', async () => {
       const { token } = await login({
-        email: `J12934@${config.get('application.domain')}`,
+        email: `J12934@${config.get<string>('application.domain')}`,
         password: '0Y8rMnww$*9VFYE§59-!Fg1L6t&6lB'
       })
 
@@ -72,7 +73,7 @@ describe('/chatbot', () => {
   describe('/respond', () => {
     it('Asks for username if not defined', async () => {
       const { token } = await login({
-        email: `J12934@${config.get('application.domain')}`,
+        email: `J12934@${config.get<string>('application.domain')}`,
         password: '0Y8rMnww$*9VFYE§59-!Fg1L6t&6lB'
       })
 
@@ -99,6 +100,9 @@ describe('/chatbot', () => {
     })
 
     it('Returns greeting if username is defined', async () => {
+      if (bot == null) {
+        throw new Error('Bot not initialized')
+      }
       const { token } = await login({
         email: 'bjoern.kimminich@gmail.com',
         password: 'bW9jLmxpYW1nQGhjaW5pbW1pay5ucmVvamI='
@@ -128,6 +132,9 @@ describe('/chatbot', () => {
     })
 
     it('Returns proper response for registered user', async () => {
+      if (bot == null) {
+        throw new Error('Bot not initialized')
+      }
       const { token } = await login({
         email: 'bjoern.kimminich@gmail.com',
         password: 'bW9jLmxpYW1nQGhjaW5pbW1pay5ucmVvamI='
@@ -157,7 +164,6 @@ describe('/chatbot', () => {
         .expect('status', 200)
         .promise()
         .then(({ json }) => {
-          // @ts-expect-error
           expect(trainingData.data[0].answers).toContainEqual(json)
         })
     })
@@ -195,7 +201,7 @@ describe('/chatbot', () => {
 
     it('Greets back registered user after being told username', async () => {
       const { token } = await login({
-        email: `stan@${config.get('application.domain')}`,
+        email: `stan@${config.get<string>('application.domain')}`,
         password: 'ship coffin krypt cross estate supply insurance asbestos souvenir'
       })
       await frisby.setup({
@@ -277,7 +283,7 @@ describe('/chatbot', () => {
           'Content-Type': 'application/json'
         },
         body: {
-          email: `chatbot-testuser@${config.get('application.domain')}`,
+          email: `chatbot-testuser@${config.get<string>('application.domain')}`,
           password: 'testtesttest',
           username: '"',
           role: 'admin'
@@ -285,7 +291,7 @@ describe('/chatbot', () => {
       }).promise()
 
       const { token } = await login({
-        email: `chatbot-testuser@${config.get('application.domain')}`,
+        email: `chatbot-testuser@${config.get<string>('application.domain')}`,
         password: 'testtesttest'
       })
 
