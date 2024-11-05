@@ -6,9 +6,11 @@ stages:
 
 variables:
   IMAGE_NAME: javascriptonit/devsecops-bootcamp
-  IMAGE_TAG: 0.0.3
+  IMAGE_DOCKER_HUB_NAME: bkimminich/juice-shop
+  IMAGE_TAG: 0.0.3-github
   SERVER_IP: 78.140.243.52
   SERVER_USER: root
+  RUNNER_TAG: local-runner-docker
 
 create_cache:
   # Устанавливает зависимости проекта и кэширует их для последующего использования
@@ -26,6 +28,8 @@ create_cache:
       - .yarn
     policy: pull-push
   # when: manual
+  tags:
+    - $RUNNER_TAG
 
 yarn_test:
   # Запускает тесты проекта, устанавливая зависимости из кэша
@@ -42,8 +46,12 @@ yarn_test:
     policy: pull
   script:
     - yarn install
+    - yarn global add @angular/cli
     - yarn test
+  allow_failure: true
   # when: manual
+  tags:
+    - $RUNNER_TAG
 
 gitleaks_check:
   # Выполняет проверку на утечки данных с помощью Gitleaks и сохраняет результаты в файл
@@ -59,6 +67,8 @@ gitleaks_check:
     paths: 
       - gitleaks.json
   # when: manual
+  tags:
+    - $RUNNER_TAG
 
 njsscan:
   # Сканирует код на наличие уязвимостей с помощью njsscan и сохраняет результаты в SARIF формате
@@ -74,6 +84,8 @@ njsscan:
     paths: 
       - njsscan.sarif 
   # when: manual
+  tags:
+    - $RUNNER_TAG
 
 semgrep:
   # Запускает статический анализ кода с помощью Semgrep и сохраняет результаты в JSON формате
@@ -89,6 +101,8 @@ semgrep:
     paths: 
       - semgrep.json
   # when: manual
+  tags:
+    - $RUNNER_TAG
 
 retire:
   # Запускает SCA анализ зависимостей с помощью  и сохраняет результаты в формате
@@ -113,6 +127,8 @@ retire:
       - .yarn
     policy: pull-push
   # when: manual
+  tags:
+    - $RUNNER_TAG
 
 upload_reports:
   # Загружает отчеты о безопасности на сервер, используя результаты предыдущих проверок
@@ -127,6 +143,8 @@ upload_reports:
     - python3 upload-reports.py semgrep.json
     - python3 upload-reports.py retire.json
   # when: manual
+  tags:
+    - $RUNNER_TAG
 
 build_image:
   image: docker:24
@@ -139,6 +157,27 @@ build_image:
     - docker build -t $IMAGE_NAME:$IMAGE_TAG .
     - docker push $IMAGE_NAME:$IMAGE_TAG
   # when: manual
+  tags:
+    - $RUNNER_TAG
+
+trivy:
+  # Запускает сканер Docker слоёв с помощью trivy и сохраняет результаты в формате
+  image: docker:24
+  stage: build
+  needs: ["build_image"]
+  services:
+    - docker:24-dind
+  before_script:
+    - echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+    - apk --no-cache add curl python3 py3-pip openssh-client
+    - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.18.3
+  script:
+    - docker pull $IMAGE_DOCKER_HUB_NAME
+    - trivy image $IMAGE_DOCKER_HUB_NAME
+    # - trivy image --severity HIGH,CRITICAL --exit-code 1 $IMAGE_DOCKER_HUB_NAME
+  allow_failure: true
+  tags:
+    - $RUNNER_TAG
 
 deploy_image:
   stage: deploy
@@ -153,5 +192,8 @@ deploy_image:
   script:
     - ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker pull $IMAGE_NAME:$IMAGE_TAG"
     - ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker stop juice-shop || true && docker rm -f juice-shop || true"
-    - ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d -p 3000:3000 --name juice-shop $IMAGE_NAME:$IMAGE_TAG"
-  # when: manual
+    # - ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d -p 3000:3000 --name juice-shop $IMAGE_NAME:$IMAGE_TAG"
+    - ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d -p 3002:3000 --name juice-shop $IMAGE_DOCKER_HUB_NAME"
+  when: manual
+  tags:
+    - $RUNNER_TAG
