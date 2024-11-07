@@ -173,8 +173,8 @@ trivy:
     - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.18.3
   script:
     - docker pull $IMAGE_DOCKER_HUB_NAME
-    - trivy image $IMAGE_DOCKER_HUB_NAME
-    # - trivy image --severity HIGH,CRITICAL --exit-code 1 $IMAGE_DOCKER_HUB_NAME
+    # - trivy image $IMAGE_DOCKER_HUB_NAME
+    - trivy image --severity HIGH,CRITICAL --exit-code 1 $IMAGE_DOCKER_HUB_NAME
   allow_failure: true
   tags:
     - $RUNNER_TAG
