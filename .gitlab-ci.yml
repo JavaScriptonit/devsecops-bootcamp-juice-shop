@@ -2,6 +2,7 @@ stages:
   - cache
   - test
   - build
+  - upload-reports
   - deploy
 
 variables:
@@ -130,22 +131,6 @@ retire:
   tags:
     - $RUNNER_TAG
 
-upload_reports:
-  # Загружает отчеты о безопасности на сервер, используя результаты предыдущих проверок
-  image: python:latest
-  stage: test
-  needs: ["gitleaks_check", "njsscan", "semgrep", "retire"]
-  before_script:
-    - pip install requests
-  script:
-    - python3 upload-reports.py gitleaks.json
-    - python3 upload-reports.py njsscan.sarif
-    - python3 upload-reports.py semgrep.json
-    - python3 upload-reports.py retire.json
-  # when: manual
-  tags:
-    - $RUNNER_TAG
-
 build_image:
   image: docker:24
   stage: build
@@ -174,8 +159,29 @@ trivy:
   script:
     - docker pull $IMAGE_DOCKER_HUB_NAME
     # - trivy image $IMAGE_DOCKER_HUB_NAME
-    - trivy image --severity HIGH,CRITICAL --exit-code 1 $IMAGE_DOCKER_HUB_NAME
+    - trivy image -f json -o trivy.json --severity HIGH,CRITICAL --exit-code 1 $IMAGE_DOCKER_HUB_NAME
   allow_failure: true
+  artifacts:
+    when: always
+    paths: 
+      - trivy.json
+  tags:
+    - $RUNNER_TAG
+
+upload_reports:
+  # Загружает отчеты о безопасности на сервер, используя результаты предыдущих проверок
+  image: python:latest
+  stage: upload-reports
+  needs: ["gitleaks_check", "njsscan", "semgrep", "retire"] # использовать только в стейдже test
+  before_script:
+    - pip install requests
+  script:
+    - python3 upload-reports.py gitleaks.json
+    - python3 upload-reports.py njsscan.sarif
+    - python3 upload-reports.py semgrep.json
+    - python3 upload-reports.py retire.json
+    - python3 upload-reports.py trivy.json
+  # when: manual
   tags:
     - $RUNNER_TAG
 

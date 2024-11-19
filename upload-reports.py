@@ -25,6 +25,8 @@ elif report_file_name == 'semgrep.json':
     report_scan_type = 'Semgrep JSON Report'
 elif report_file_name == 'retire.json':
     report_scan_type = 'Retire.js Scan'
+elif report_file_name == 'trivy.json':
+    report_scan_type = 'Trivy Scan'
 
 # Данные для отправки
 files = {
