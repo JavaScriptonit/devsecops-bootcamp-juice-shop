@@ -3,7 +3,8 @@ stages:
   - test
   - build
   - upload-reports
-  - deploy
+  - deploy-test
+  - deploy-prod
 
 variables:
   IMAGE_NAME: javascriptonit/devsecops-bootcamp
@@ -12,6 +13,7 @@ variables:
   SERVER_IP: 78.140.243.52
   SERVER_USER: root
   RUNNER_TAG: local-runner-docker
+  ZAP_TARGET: "http://78.140.243.52:3000" 
 
 create_cache:
   # Устанавливает зависимости проекта и кэширует их для последующего использования
@@ -159,7 +161,8 @@ trivy:
   script:
     - docker pull $IMAGE_DOCKER_HUB_NAME
     # - trivy image $IMAGE_DOCKER_HUB_NAME
-    - trivy image -f json -o trivy.json --severity HIGH,CRITICAL --exit-code 1 $IMAGE_DOCKER_HUB_NAME
+    # - trivy image -f json -o trivy.json --severity HIGH,CRITICAL --exit-code 1 $IMAGE_DOCKER_HUB_NAME # проверить актуальный образ bkimminich/juice-shop
+    - trivy image -f json -o trivy.json --severity HIGH,CRITICAL --exit-code 1 $IMAGE_NAME:$IMAGE_TAG # проверить собственный образ
   allow_failure: true
   artifacts:
     when: always
@@ -172,7 +175,7 @@ upload_reports:
   # Загружает отчеты о безопасности на сервер, используя результаты предыдущих проверок
   image: python:latest
   stage: upload-reports
-  needs: ["gitleaks_check", "njsscan", "semgrep", "retire"] # использовать только в стейдже test
+  # needs: ["gitleaks_check", "njsscan", "semgrep", "retire"] # использовать только в стейдже test
   before_script:
     - pip install requests
   script:
@@ -185,8 +188,8 @@ upload_reports:
   tags:
     - $RUNNER_TAG
 
-deploy_image:
-  stage: deploy
+deploy_test:
+  stage: deploy-test
   image: debian:bullseye-slim
   before_script:
     - apt update -y && apt install openssh-client -y
@@ -196,6 +199,44 @@ deploy_image:
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
   script:
+    - ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker pull $IMAGE_NAME:$IMAGE_TAG"
+    - ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker stop juice-shop || true && docker rm -f juice-shop || true"
+    # - ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d -p 3000:3000 --name juice-shop $IMAGE_NAME:$IMAGE_TAG"
+    - ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d -p 3002:3000 --name juice-shop $IMAGE_DOCKER_HUB_NAME"
+  when: manual
+  tags:
+    - $RUNNER_TAG
+
+
+zap:
+  stage: deploy-test
+  image: securecodebox/zap
+  needs: ["deploy_test"]
+  before_script:
+    - mkdir -p /zap/wrk
+  script:
+    - zap-baseline.py -t $ZAP_TARGET -g gen.conf -I -x baseline.xml
+    - cp /zap/wrk/baseline.xml baseline.xml
+  artifacts:
+    when: always
+    paths: 
+      - baseline.xml
+  tags:
+    - $RUNNER_TAG
+
+
+deploy_prod:
+  stage: deploy-prod
+  image: debian:bullseye-slim
+  before_script:
+    - apt update -y && apt install openssh-client -y
+    - eval $(ssh-agent -s)
+    - chmod 400 "$SSH_PRIVATE_KEY"
+    - ssh-add "$SSH_PRIVATE_KEY"
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+  script:
+    - echo "Deploying to prod env"
     - ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker pull $IMAGE_NAME:$IMAGE_TAG"
     - ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker stop juice-shop || true && docker rm -f juice-shop || true"
     # - ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d -p 3000:3000 --name juice-shop $IMAGE_NAME:$IMAGE_TAG"
