@@ -177,6 +177,14 @@ restoreOverwrittenFilesWithOriginals().then(() => {
   /* Security middleware */
   app.use(helmet.noSniff())
   app.use(helmet.frameguard())
+  app.use(helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"], // Разрешать только контент с того же источника
+      scriptSrc: ["'self'"], // Разрешать выполнение скриптов только с того же источника
+      styleSrc: ["'self'"], // Разрешать стили только с того же источника
+      // Добавьте сюда другие директивы по мере необходимости, например, для изображений, шрифтов и т.д.
+    }
+  }))
   // app.use(helmet.xssFilter()); // = no protection from persisted XSS via RESTful API
   app.disable('x-powered-by')
   app.use(featurePolicy({
