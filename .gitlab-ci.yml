@@ -10,10 +10,10 @@ variables:
   IMAGE_NAME: javascriptonit/devsecops-bootcamp
   IMAGE_DOCKER_HUB_NAME: bkimminich/juice-shop
   IMAGE_TAG: 0.0.3-github
-  SERVER_IP: 78.140.243.52
+  SERVER_IP: 188.227.35.30
   SERVER_USER: root
-  RUNNER_TAG: local-runner-docker
-  ZAP_TARGET: "http://78.140.243.52:3000" 
+  RUNNER_TAG: runner # local-runner-docker
+  ZAP_TARGET: "http://188.227.35.30:3002" 
 
 create_cache:
   # Устанавливает зависимости проекта и кэширует их для последующего использования
@@ -210,7 +210,7 @@ deploy_test:
 
 zap:
   stage: deploy-test
-  image: securecodebox/zap
+  image: zaproxy/zap-stable
   needs: ["deploy_test"]
   before_script:
     - mkdir -p /zap/wrk
